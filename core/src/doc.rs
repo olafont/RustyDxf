@@ -841,33 +841,34 @@ pub fn decode_text_codes(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     let mut i = 0;
     while i < chars.len() {
-        if chars[i] == '%' && chars.get(i + 1) == Some(&'%') {
-            if let Some(&c) = chars.get(i + 2) {
-                match c.to_ascii_lowercase() {
-                    'd' => out.push('°'),
-                    'p' => out.push('±'),
-                    'c' => out.push('⌀'),
-                    '%' => out.push('%'),
-                    // Underline / overline / strike-through toggles.
-                    'u' | 'o' | 'k' => {}
-                    d if d.is_ascii_digit() => {
-                        // %%nnn: character by decimal code.
-                        let digits: String = chars[i + 2..]
-                            .iter()
-                            .take(3)
-                            .take_while(|c| c.is_ascii_digit())
-                            .collect();
-                        if let Some(ch) = digits.parse::<u32>().ok().and_then(char::from_u32) {
-                            out.push(ch);
-                        }
-                        i += 2 + digits.len();
-                        continue;
+        if chars[i] == '%'
+            && chars.get(i + 1) == Some(&'%')
+            && let Some(&c) = chars.get(i + 2)
+        {
+            match c.to_ascii_lowercase() {
+                'd' => out.push('°'),
+                'p' => out.push('±'),
+                'c' => out.push('⌀'),
+                '%' => out.push('%'),
+                // Underline / overline / strike-through toggles.
+                'u' | 'o' | 'k' => {}
+                d if d.is_ascii_digit() => {
+                    // %%nnn: character by decimal code.
+                    let digits: String = chars[i + 2..]
+                        .iter()
+                        .take(3)
+                        .take_while(|c| c.is_ascii_digit())
+                        .collect();
+                    if let Some(ch) = digits.parse::<u32>().ok().and_then(char::from_u32) {
+                        out.push(ch);
                     }
-                    other => out.push(other),
+                    i += 2 + digits.len();
+                    continue;
                 }
-                i += 3;
-                continue;
+                other => out.push(other),
             }
+            i += 3;
+            continue;
         }
         out.push(chars[i]);
         i += 1;

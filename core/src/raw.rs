@@ -362,10 +362,10 @@ pub(crate) fn scan(data: &[u8]) -> RawScan {
                     record_entity(&mut out.model, &kind, &record);
                 }
                 _ if section == Section::Blocks => {
-                    if let Some(name) = &block {
-                        if let Some(c) = out.blocks.get_mut(name) {
-                            record_entity(c, &kind, &record);
-                        }
+                    if let Some(name) = &block
+                        && let Some(c) = out.blocks.get_mut(name)
+                    {
+                        record_entity(c, &kind, &record);
                     }
                 }
                 _ => {}

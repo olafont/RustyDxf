@@ -321,6 +321,9 @@ pub fn bulge_segment_length(a: Vec2, b: Vec2, bulge: f64) -> f64 {
     }
 }
 
+/// Coarsest angular step used when flattening arcs (32 segments per turn).
+const MAX_ARC_STEP: f64 = TAU / 32.0;
+
 /// Number of segments needed to flatten an arc of the given radius and sweep
 /// so the chord error stays under `tolerance`.
 pub fn arc_segments(radius: f64, sweep: f64, tolerance: f64) -> usize {
@@ -331,9 +334,9 @@ pub fn arc_segments(radius: f64, sweep: f64, tolerance: f64) -> usize {
     let step = if tolerance > 0.0 && tolerance < radius {
         2.0 * (1.0 - tolerance / radius).acos()
     } else {
-        PI / 4.0
+        MAX_ARC_STEP
     };
-    let step = step.clamp(TAU / 720.0, PI / 4.0);
+    let step = step.clamp(TAU / 720.0, MAX_ARC_STEP);
     ((sweep / step).ceil() as usize).clamp(1, 720)
 }
 

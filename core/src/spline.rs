@@ -82,16 +82,9 @@ fn flatten_nurbs(s: &Spline, samples: usize) -> Vec<Vec2> {
 
 fn clamped_uniform_knots(n: usize, degree: usize) -> Vec<f64> {
     let interior = n - degree; // number of spans
-    let mut k = Vec::with_capacity(n + degree + 1);
-    for _ in 0..=degree {
-        k.push(0.0);
-    }
-    for i in 1..interior {
-        k.push(i as f64);
-    }
-    for _ in 0..=degree {
-        k.push(interior as f64);
-    }
+    let mut k = vec![0.0; degree + 1];
+    k.extend((1..interior).map(|i| i as f64));
+    k.extend(std::iter::repeat_n(interior as f64, degree + 1));
     k
 }
 
@@ -115,8 +108,9 @@ fn de_boor(
             } else {
                 (u - knots[i]) / denom
             };
-            for c in 0..3 {
-                d[j][c] = (1.0 - alpha) * d[j - 1][c] + alpha * d[j][c];
+            let prev = d[j - 1];
+            for (cur, prev) in d[j].iter_mut().zip(prev) {
+                *cur = (1.0 - alpha) * prev + alpha * *cur;
             }
         }
     }

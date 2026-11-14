@@ -17,3 +17,5 @@ wgpu.workspace = true
 bytemuck.workspace = true
 pollster.workspace = true
 png.workspace = true
+ttf-parser.workspace = true
+epaint_default_fonts.workspace = true
