@@ -1,3 +1,5 @@
 /target
 /dist
 .DS_Store
+/tests/fixtures/real/complex_bin.dxf
+/tests/fixtures/real/complex_r2000.dxf

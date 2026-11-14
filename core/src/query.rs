@@ -281,12 +281,14 @@ pub struct TextHit {
 /// Case-insensitive substring search over TEXT / MTEXT / ATTRIB content.
 /// An empty query matches every text entity.
 pub fn find_text(d: &Drawing, query: &str) -> Vec<TextHit> {
-    let needle = query.to_lowercase();
+    // Line breaks (including word-wrap breaks) match like spaces.
+    let fold = |s: &str| s.to_lowercase().replace('\n', " ");
+    let needle = fold(query);
     d.entities
         .iter()
         .enumerate()
         .filter_map(|(index, e)| match &e.geom {
-            Geometry::Text(t) if t.content.to_lowercase().contains(&needle) => Some(TextHit {
+            Geometry::Text(t) if fold(&t.content).contains(&needle) => Some(TextHit {
                 index,
                 kind: e.kind,
                 layer: d.layer_name(e.layer).to_string(),

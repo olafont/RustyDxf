@@ -191,8 +191,13 @@ pub fn status_bar(app: &mut ViewerApp, ui: &mut egui::Ui) {
 
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if app.mcp_live() {
-                    ui.label(RichText::new("● MCP live").color(accent()))
-                        .on_hover_text("An MCP client is connected to this window");
+                    let hover = "An MCP client is connected to this window";
+                    ui.label(RichText::new("MCP live").color(accent()))
+                        .on_hover_text(hover);
+                    // Painted, because the built-in font has no dot glyph.
+                    let (dot, _) =
+                        ui.allocate_exact_size(egui::vec2(8.0, 8.0), egui::Sense::hover());
+                    ui.painter().circle_filled(dot.center(), 3.5, accent());
                     ui.separator();
                 }
                 match (app.cursor_world, &app.doc) {

@@ -409,6 +409,13 @@ fn common(record: &[Pair]) -> (RawCommon, bool) {
     if let Some(v) = first(record, 420) {
         color = ColorSpec::True(v.as_i64() as i32);
     }
+    // Gradient hatches keep their real colors in the gradient data (421);
+    // fill with the first one rather than the placeholder entity color.
+    if first(record, 450).map(|v| v.as_i64()) == Some(1)
+        && let Some(v) = first(record, 421)
+    {
+        color = ColorSpec::True(v.as_i64() as i32);
+    }
     let paper_space = first(record, 67).map(|v| v.as_i64()) == Some(1);
     let visible = first(record, 60).map(|v| v.as_i64()) != Some(1);
     (
@@ -569,7 +576,8 @@ fn edge_path(cur: &mut Cursor) -> Vec<Vec2> {
         .map(|v| v.as_i64().max(0) as usize)
         .unwrap_or(0);
     let mut pts: Vec<Vec2> = Vec::new();
-    for _ in 0..count.min(MAX_LOOP_POINTS) {
+    let count = count.min(MAX_LOOP_POINTS);
+    for edge in 0..count {
         let Some(edge_type) = cur.take(72).map(|v| v.as_i64()) else {
             break;
         };
@@ -594,7 +602,7 @@ fn edge_path(cur: &mut Cursor) -> Vec<Vec2> {
                 let (s, e, ccw) = arc_params(cur);
                 arc_points(&mut pts, c, major, minor, s, e, ccw);
             }
-            4 => pts.extend(spline_edge(cur)),
+            4 => pts.extend(spline_edge(cur, edge + 1 == count)),
             _ => break,
         }
     }
@@ -632,7 +640,7 @@ fn arc_points(
     }
 }
 
-fn spline_edge(cur: &mut Cursor) -> Vec<Vec2> {
+fn spline_edge(cur: &mut Cursor, last_edge: bool) -> Vec<Vec2> {
     let degree = cur.take(94).map(|v| v.as_i64()).unwrap_or(3).clamp(1, 16) as usize;
     cur.take(73);
     cur.take(74);
@@ -661,10 +669,12 @@ fn spline_edge(cur: &mut Cursor) -> Vec<Vec2> {
         }
     }
     // Optional fit data (R2010+). The path's own trailing 97 (source object
-    // count) uses the same code, so only treat this as fit data when fit
-    // points or another 97 follow.
+    // count) uses the same code, so after the last edge only treat this as
+    // fit data when fit points or another 97 follow. Between edges a 97 can
+    // only be fit data.
     let mut fit_points = Vec::new();
-    if cur.peek_code() == Some(97) && matches!(cur.peek_code_at(1), Some(11) | Some(12) | Some(97))
+    if cur.peek_code() == Some(97)
+        && (!last_edge || matches!(cur.peek_code_at(1), Some(11) | Some(12) | Some(97)))
     {
         let n_fit = cur
             .take(97)

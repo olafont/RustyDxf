@@ -552,9 +552,18 @@ impl<'a> Builder<'a> {
                     0.0
                 };
                 let (halign, valign) = attachment(t.attachment_point);
+                let height = positive_or(t.initial_text_height, 1.0);
+                // Wrap to the reference rectangle. The dxf crate reports 1.0
+                // when the width is absent, so that value means "no limit".
+                let wrap = t.reference_rectangle_width;
+                let content = if wrap > 0.0 && wrap != 1.0 {
+                    crate::tessellate::wrap_text(&content, height, wrap)
+                } else {
+                    content
+                };
                 let geom = Geometry::Text(Text {
                     pos: p2(&t.insertion_point),
-                    height: positive_or(t.initial_text_height, 1.0),
+                    height,
                     rotation,
                     content,
                     halign,
@@ -848,7 +857,7 @@ pub fn decode_text_codes(s: &str) -> String {
             match c.to_ascii_lowercase() {
                 'd' => out.push('°'),
                 'p' => out.push('±'),
-                'c' => out.push('⌀'),
+                'c' => out.push('Ø'),
                 '%' => out.push('%'),
                 // Underline / overline / strike-through toggles.
                 'u' | 'o' | 'k' => {}
@@ -1046,7 +1055,7 @@ mod tests {
     #[test]
     fn text_codes() {
         assert_eq!(decode_text_codes("45%%d"), "45°");
-        assert_eq!(decode_text_codes("%%p0.1 %%c20"), "±0.1 ⌀20");
+        assert_eq!(decode_text_codes("%%p0.1 %%c20"), "±0.1 Ø20");
         assert_eq!(decode_text_codes("%%uTitle%%u"), "Title");
         assert_eq!(decode_text_codes("100%%%"), "100%");
         assert_eq!(decode_text_codes("plain"), "plain");

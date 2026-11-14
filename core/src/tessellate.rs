@@ -355,6 +355,62 @@ impl ttf_parser::OutlineBuilder for GlyphSink<'_> {
 
 /// Tessellate every entity of the drawing. Layer visibility is not applied
 /// here; the renderer picks which [`LayerBatch`]es to draw.
+/// Greedy word wrap of `content` (which may already contain line breaks) so
+/// that no line is wider than `max_width` drawing units at cap height
+/// `height`, measured with the built-in font. A single word wider than the
+/// limit stays on its own line.
+pub fn wrap_text(content: &str, height: f64, max_width: f64) -> String {
+    if !(height > 0.0 && max_width > 0.0 && height.is_finite() && max_width.is_finite()) {
+        return content.to_string();
+    }
+    let font = ttf_parser::Face::parse(epaint_default_fonts::UBUNTU_LIGHT, 0).ok();
+    let scale = font.as_ref().map(|f| {
+        let cap = f
+            .capital_height()
+            .filter(|h| *h > 0)
+            .map(f64::from)
+            .unwrap_or(f64::from(f.units_per_em()) * 0.7);
+        height / cap
+    });
+    let advance = |c: char| -> f64 {
+        font.as_ref()
+            .zip(scale)
+            .and_then(|(f, scale)| {
+                let glyph = f.glyph_index(c)?;
+                Some(f64::from(f.glyph_hor_advance(glyph)?) * scale)
+            })
+            .unwrap_or(height * TEXT_ASPECT)
+    };
+    let width = |s: &str| -> f64 { s.chars().map(advance).sum() };
+    let space = advance(' ');
+
+    let mut out = String::with_capacity(content.len() + 8);
+    for (i, line) in content.split('\n').enumerate() {
+        if i > 0 {
+            out.push('\n');
+        }
+        if width(line) <= max_width {
+            out.push_str(line);
+            continue;
+        }
+        let mut used = 0.0;
+        for word in line.split(' ').filter(|w| !w.is_empty()) {
+            let w = width(word);
+            if used > 0.0 && used + space + w > max_width {
+                out.push('\n');
+                used = 0.0;
+            }
+            if used > 0.0 {
+                out.push(' ');
+                used += space;
+            }
+            out.push_str(word);
+            used += w;
+        }
+    }
+    out
+}
+
 pub fn tessellate(drawing: &Drawing, opts: TessellateOptions) -> Mesh {
     let origin = drawing.bbox.map(|b| b.center()).unwrap_or(Vec2::ZERO);
     let diagonal = drawing.bbox.map(|b| b.diagonal()).unwrap_or(1.0);
@@ -557,6 +613,22 @@ mod tests {
             .sum();
         assert!((area - 12.0).abs() < 1e-4, "area {area}");
         assert_eq!(m.layers[0].indices, 0..m.fill_indices.len() as u32);
+    }
+
+    #[test]
+    fn word_wrap_respects_the_width() {
+        let text = "alpha beta gamma delta epsilon";
+        assert_eq!(wrap_text(text, 1.0, 1e9), text);
+        assert_eq!(wrap_text(text, 1.0, 0.0), text);
+        let wrapped = wrap_text(text, 1.0, 8.0);
+        assert!(wrapped.lines().count() > 1, "{wrapped}");
+        assert_eq!(wrapped.replace('\n', " "), text);
+        // Existing breaks are kept, and a long word is never split.
+        assert_eq!(wrap_text("a\nb", 1.0, 100.0), "a\nb");
+        assert_eq!(
+            wrap_text("supercalifragilistic", 1.0, 2.0),
+            "supercalifragilistic"
+        );
     }
 
     #[test]
