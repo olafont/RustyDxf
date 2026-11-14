@@ -639,7 +639,7 @@ impl ViewerApp {
         );
         let hint = format!(
             "Drop a .dxf file here, or press {} to open one",
-            egui::Context::default().format_shortcut(&OPEN_SHORTCUT)
+            painter.ctx().format_shortcut(&OPEN_SHORTCUT)
         );
         painter.text(
             center + egui::vec2(0.0, 16.0),
