@@ -81,8 +81,10 @@ Files opened from Finder arrive as Apple Events on both cold and warm launch.
 ```
 
 This runs `lsregister -f` on the bundle and sets the default handler for
-`com.autodesk.dxf`. If macOS does not accept the change, do it by hand: select a
-`.dxf` in Finder → Get Info → Open with → RustyDxf → Change All.
+`com.autodesk.dxf` and for every other type the system maps `.dxf` to (other
+CAD apps often declare their own), then reads each one back and reports it. If
+macOS does not accept the change, do it by hand: select a `.dxf` in Finder →
+Get Info → Open with → RustyDxf → Change All.
 
 **Windows** — `rustydxf.exe --register` writes per-user keys under
 `HKCU\Software\Classes` (ProgID `ArtTech.RustyDxf.Drawing`, `.dxf` →
@@ -192,7 +194,6 @@ hidden.
 - **Windows and Linux are untested on real machines.** The code type-checks and
   passes clippy for `x86_64-pc-windows-msvc` and `x86_64-unknown-linux-gnu`,
   but registration, the named pipe and the windowing have only been run on macOS.
-- **macOS `--register`** has not been exercised end to end during development.
 - **Text** uses one built-in font. On screen it is drawn by egui; in
   `render_png` it is drawn as filled glyph outlines. SHX/TrueType styles, width
   factors and MTEXT inline formatting are ignored, and Aligned/Fit

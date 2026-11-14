@@ -86,6 +86,57 @@ unsafe extern "C" {
         role: u32,
         handler_bundle_id: *const c_void,
     ) -> i32;
+    /// `CFArrayRef UTTypeCreateAllIdentifiersForTag(CFStringRef, CFStringRef, CFStringRef)`
+    fn UTTypeCreateAllIdentifiersForTag(
+        tag_class: *const c_void,
+        tag: *const c_void,
+        conforming_to: *const c_void,
+    ) -> *mut c_void;
+    /// `CFStringRef LSCopyDefaultRoleHandlerForContentType(CFStringRef, LSRolesMask)`
+    fn LSCopyDefaultRoleHandlerForContentType(
+        content_type: *const c_void,
+        role: u32,
+    ) -> *mut c_void;
+}
+
+/// Every type identifier the system maps the `.dxf` extension to, preferred
+/// first. Other installed CAD apps often declare their own type for the
+/// extension, and that type, not `com.autodesk.dxf`, is then the one Finder
+/// uses, so the default handler has to be set for each of them.
+fn dxf_type_identifiers() -> Vec<String> {
+    let class = NSString::from_str("public.filename-extension");
+    let tag = NSString::from_str("dxf");
+    // SAFETY: valid CFString arguments; the result follows the Create rule
+    // and CFArray is toll-free bridged with NSArray.
+    let found: Option<Retained<NSArray<NSString>>> = unsafe {
+        let array = UTTypeCreateAllIdentifiersForTag(
+            Retained::as_ptr(&class).cast(),
+            Retained::as_ptr(&tag).cast(),
+            std::ptr::null(),
+        );
+        Retained::from_raw(array.cast())
+    };
+    let mut ids: Vec<String> = found
+        .map(|a| a.iter().map(|s| s.to_string()).collect())
+        .unwrap_or_default();
+    // Dynamic types (dyn.*) cannot be given a handler.
+    ids.retain(|id| !id.starts_with("dyn."));
+    if !ids.iter().any(|id| id == DXF_UTI) {
+        ids.push(DXF_UTI.to_string());
+    }
+    ids
+}
+
+fn default_handler(uti: &str) -> Option<String> {
+    let uti = NSString::from_str(uti);
+    // SAFETY: valid CFString argument; the result follows the Copy rule.
+    let handler: Option<Retained<NSString>> = unsafe {
+        Retained::from_raw(
+            LSCopyDefaultRoleHandlerForContentType(Retained::as_ptr(&uti).cast(), K_LS_ROLES_ALL)
+                .cast(),
+        )
+    };
+    handler.map(|h| h.to_string())
 }
 
 const K_LS_ROLES_ALL: u32 = 0xFFFF_FFFF;
@@ -118,25 +169,42 @@ pub fn register() -> Result<()> {
     }
 
     // NSString is toll-free bridged with CFString.
-    let uti = NSString::from_str(DXF_UTI);
     let bundle_id = NSString::from_str(brand::APP_ID);
-    // SAFETY: both arguments are valid CFString references for the call.
-    let os_status = unsafe {
-        LSSetDefaultRoleHandlerForContentType(
-            Retained::as_ptr(&uti).cast(),
-            K_LS_ROLES_ALL,
-            Retained::as_ptr(&bundle_id).cast(),
-        )
-    };
-    if os_status == 0 {
+    let types = dxf_type_identifiers();
+    let mut all_set = true;
+    for uti in &types {
+        let uti_string = NSString::from_str(uti);
+        // SAFETY: both arguments are valid CFString references for the call.
+        let os_status = unsafe {
+            LSSetDefaultRoleHandlerForContentType(
+                Retained::as_ptr(&uti_string).cast(),
+                K_LS_ROLES_ALL,
+                Retained::as_ptr(&bundle_id).cast(),
+            )
+        };
+        // Read it back: the call can report success without taking effect.
+        let now = default_handler(uti);
+        let ours = now
+            .as_deref()
+            .is_some_and(|h| h.eq_ignore_ascii_case(brand::APP_ID));
+        if os_status == 0 && ours {
+            println!("  {uti}: default handler set");
+        } else {
+            all_set = false;
+            println!(
+                "  {uti}: NOT set (OSStatus {os_status}, handler is {})",
+                now.as_deref().unwrap_or("unset")
+            );
+        }
+    }
+    if all_set {
         println!(
-            "{} is now the default app for .dxf files ({DXF_UTI}).",
+            "{} is now the default app for .dxf files.",
             brand::PRODUCT_NAME
         );
     } else {
         println!(
-            "Launch Services did not accept the default-handler change (OSStatus {os_status}).\n\
-             Recent macOS versions may require confirming this yourself."
+            "Launch Services did not accept every change; macOS may require confirming it yourself."
         );
     }
     println!(
