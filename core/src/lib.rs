@@ -5,6 +5,7 @@ pub mod doc;
 pub mod fixtures;
 pub mod geom;
 pub mod model;
+pub mod query;
 mod raw;
 pub mod render;
 pub mod spline;
