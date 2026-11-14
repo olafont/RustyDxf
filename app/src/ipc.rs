@@ -88,6 +88,8 @@ impl Response {
 /// A request handed to the GUI thread, with the channel for its answer.
 pub struct Job {
     pub request: Request,
+    /// The connection introduced itself as an MCP server.
+    pub from_mcp: bool,
     pub reply: mpsc::Sender<Response>,
 }
 
@@ -341,7 +343,12 @@ fn serve_connection(
             }
             Ok(request) => {
                 let (reply, answer) = mpsc::channel();
-                if jobs.send(Job { request, reply }).is_err() {
+                let job = Job {
+                    request,
+                    from_mcp: mcp_guard.is_some(),
+                    reply,
+                };
+                if jobs.send(job).is_err() {
                     break; // The GUI is shutting down.
                 }
                 wake();

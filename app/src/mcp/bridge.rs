@@ -87,6 +87,13 @@ impl Bridge {
                         "the viewer is not running and RUSTYDXF_NO_LAUNCH is set",
                     ));
                 }
+                if !crate::settings::Settings::load().mcp.launch_viewer {
+                    return Err(io::Error::new(
+                        e.kind(),
+                        "the viewer is not running, and starting it from MCP is turned off in \
+                         the RustyDxf preferences. Open RustyDxf first.",
+                    ));
+                }
                 launch_gui()?;
                 let deadline = Instant::now() + LAUNCH_TIMEOUT;
                 loop {

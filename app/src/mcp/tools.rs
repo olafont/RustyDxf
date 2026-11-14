@@ -7,6 +7,7 @@
 use super::bridge::Bridge;
 use super::cache::{Cache, Entry, resolve_path};
 use crate::ipc;
+use crate::settings::{self, Settings};
 use base64::Engine as _;
 use rmcp::handler::server::router::tool::ToolRouter;
 use rmcp::handler::server::wrapper::Parameters;
@@ -20,6 +21,8 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::Arc;
 
+const VIEWER_CONTROL_OFF: &str = "MCP control of the viewer is turned off in the RustyDxf \
+     preferences (File → Preferences… → MCP). The headless tools still work.";
 const DEFAULT_ENTITY_LIMIT: usize = 500;
 const MAX_ENTITY_LIMIT: usize = 2000;
 const MAX_LAYERS_LISTED: usize = 2000;
@@ -138,10 +141,11 @@ pub struct RenderParams {
     /// Omit to frame the whole drawing.
     #[serde(default)]
     pub bbox: Option<[f64; 4]>,
-    /// Background color: "dark" (default) or "light". ACI 7 is drawn white
-    /// on dark and black on light.
+    /// Background color: "dark" or "light". ACI 7 is drawn white on dark and
+    /// black on light. Omit to use the default from the RustyDxf preferences
+    /// (dark unless the user changed it).
     #[serde(default)]
-    pub background: Background,
+    pub background: Option<Background>,
     /// Optional absolute path to also write the PNG to (`~` is expanded).
     /// An existing file at that path is overwritten.
     #[serde(default)]
@@ -281,7 +285,13 @@ impl RustyDxfServer {
         F: FnOnce(&Cache, &Bridge) -> Result<CallToolResult, String> + Send + 'static,
     {
         let (cache, bridge) = (self.cache.clone(), self.bridge.clone());
-        let joined = tokio::task::spawn_blocking(move || f(&cache, &bridge)).await;
+        let joined = tokio::task::spawn_blocking(move || {
+            if !Settings::load().mcp.allow_viewer_control {
+                return Err(VIEWER_CONTROL_OFF.to_string());
+            }
+            f(&cache, &bridge)
+        })
+        .await;
         Ok(match joined {
             Ok(Ok(result)) => result,
             Ok(Err(message)) => failure(message),
@@ -557,7 +567,11 @@ impl RustyDxfServer {
                 ));
             }
             let output = p.output_path.as_deref().map(resolve_path).transpose()?;
-            let dark = matches!(p.background, Background::Dark);
+            let dark = match p.background {
+                Some(Background::Dark) => true,
+                Some(Background::Light) => false,
+                None => Settings::load().mcp.render_background == settings::RenderBackground::Dark,
+            };
 
             let png = render_png(
                 entry.mesh(),

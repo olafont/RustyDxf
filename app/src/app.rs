@@ -3,12 +3,13 @@
 
 use crate::gpu;
 use crate::ipc::{self, Request, Response, ViewerState};
+use crate::settings::{Settings, Theme};
 use egui::{Color32, Key, KeyboardShortcut, Modifiers, PointerButton, Sense};
 use rustydxf_core::brand;
 use rustydxf_core::camera::Camera;
 use rustydxf_core::geom::{BBox, Vec2, vec2};
 use rustydxf_core::model::{Drawing, HAlign, VAlign, text_corners};
-use rustydxf_core::render::{BACKGROUND_DARK, ViewUniform};
+use rustydxf_core::render::{BACKGROUND_DARK, BACKGROUND_LIGHT, ViewUniform};
 use rustydxf_core::tessellate::{Mesh, TessellateOptions, TextItem, tessellate};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -17,6 +18,7 @@ use std::time::{Duration, Instant};
 
 pub const OPEN_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::O);
 pub const CLOSE_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::W);
+pub const PREFS_SHORTCUT: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::Comma);
 
 /// Most text labels drawn in one frame.
 const MAX_TEXTS_PER_FRAME: usize = 4000;
@@ -91,6 +93,10 @@ pub struct ViewerApp {
     pub cursor_world: Option<Vec2>,
     pub show_layers: bool,
     pub show_about: bool,
+    pub show_prefs: bool,
+    pub settings: Settings,
+    /// Why the last attempt to save the preferences failed, if it did.
+    pub settings_error: Option<String>,
     pub error: Option<String>,
     pub toast: Option<(String, Instant)>,
     render_state: Option<egui_wgpu::RenderState>,
@@ -100,10 +106,12 @@ pub struct ViewerApp {
 
 impl ViewerApp {
     pub fn new(cc: &eframe::CreationContext<'_>, initial: Vec<PathBuf>) -> Self {
-        let mut visuals = egui::Visuals::dark();
-        visuals.selection.bg_fill = accent().gamma_multiply(0.55);
-        visuals.hyperlink_color = accent();
-        cc.egui_ctx.set_visuals(visuals);
+        let settings = Settings::load();
+        cc.egui_ctx.all_styles_mut(|style| {
+            style.visuals.selection.bg_fill = accent().gamma_multiply(0.55);
+            style.visuals.hyperlink_color = accent();
+        });
+        apply_theme(&cc.egui_ctx, settings.theme);
 
         if let Some(rs) = &cc.wgpu_render_state {
             gpu::install(rs);
@@ -132,6 +140,9 @@ impl ViewerApp {
             cursor_world: None,
             show_layers: true,
             show_about: false,
+            show_prefs: false,
+            settings,
+            settings_error: None,
             error: None,
             toast: None,
             render_state: cc.wgpu_render_state.clone(),
@@ -142,6 +153,12 @@ impl ViewerApp {
             app.open(&cc.egui_ctx, path, PendingView::default(), None);
         }
         app
+    }
+
+    /// Apply and persist the preferences after the user changed them.
+    pub fn settings_changed(&mut self, ctx: &egui::Context) {
+        apply_theme(ctx, self.settings.theme);
+        self.settings_error = self.settings.save().err().map(|e| format!("{e:#}"));
     }
 
     pub fn mcp_live(&self) -> bool {
@@ -343,6 +360,14 @@ impl ViewerApp {
 
     fn handle_ipc(&mut self, ctx: &egui::Context) {
         while let Ok(job) = self.ipc_jobs.try_recv() {
+            // Hello and Focus stay allowed; they reveal and change nothing.
+            let controls_viewer = matches!(job.request, Request::State | Request::Open { .. });
+            if job.from_mcp && controls_viewer && !self.settings.mcp.allow_viewer_control {
+                let _ = job.reply.send(Response::error(
+                    "MCP control of the viewer is turned off in the RustyDxf preferences",
+                ));
+                continue;
+            }
             match job.request {
                 Request::Hello { .. } => {
                     let _ = job.reply.send(Response::ok(None));
@@ -381,15 +406,19 @@ impl ViewerApp {
     }
 
     fn handle_shortcuts(&mut self, ctx: &egui::Context) {
-        let (open, close, fit) = ctx.input_mut(|i| {
+        let (open, close, prefs, fit) = ctx.input_mut(|i| {
             (
                 i.consume_shortcut(&OPEN_SHORTCUT),
                 i.consume_shortcut(&CLOSE_SHORTCUT),
+                i.consume_shortcut(&PREFS_SHORTCUT),
                 i.modifiers.is_none() && i.key_pressed(Key::F),
             )
         });
         if open {
             self.open_dialog(ctx);
+        }
+        if prefs {
+            self.show_prefs = true;
         }
         if close {
             if self.doc.is_some() {
@@ -448,7 +477,7 @@ impl ViewerApp {
                 doc.origin,
                 (size.0 * ppp, size.1 * ppp),
                 (1.25 * ppp) as f32,
-                true,
+                ui.visuals().dark_mode,
             );
             painter.add(egui_wgpu::Callback::new_paint_callback(
                 rect,
@@ -473,7 +502,7 @@ impl ViewerApp {
                 egui::Align2::CENTER_CENTER,
                 format!("Loading {}…", file_name(&loading.path)),
                 egui::FontId::proportional(14.0),
-                Color32::from_gray(200),
+                ui.visuals().text_color(),
             );
             ui.ctx().request_repaint_after(Duration::from_millis(50));
         }
@@ -568,6 +597,7 @@ impl ViewerApp {
     fn paint_texts(&self, painter: &egui::Painter, rect: egui::Rect, doc: &Document) {
         let size = self.view_size;
         let view = self.camera.visible_bbox(size);
+        let dark = painter.ctx().global_style().visuals.dark_mode;
         let mut drawn = 0;
         for item in &doc.texts {
             if !doc
@@ -594,7 +624,7 @@ impl ViewerApp {
                 break;
             }
 
-            let rgb = item.color.display_rgb(true);
+            let rgb = item.color.display_rgb(dark);
             let color = Color32::from_rgb(rgb[0], rgb[1], rgb[2]);
             let font_size = (cap_points * FONT_SIZE_PER_CAP_HEIGHT).min(2000.0);
             let galley = painter.layout_no_wrap(
@@ -646,7 +676,7 @@ impl ViewerApp {
             egui::Align2::CENTER_CENTER,
             hint,
             egui::FontId::proportional(14.0),
-            Color32::from_gray(150),
+            painter.ctx().global_style().visuals.weak_text_color(),
         );
     }
 }
@@ -671,17 +701,19 @@ impl eframe::App for ViewerApp {
         crate::ui::status_bar(self, ui);
         crate::ui::layers_panel(self, ui);
 
-        let bg = Color32::from_rgb(BACKGROUND_DARK[0], BACKGROUND_DARK[1], BACKGROUND_DARK[2]);
+        let bg = canvas_background(ui.visuals().dark_mode);
+        let bg = Color32::from_rgb(bg[0], bg[1], bg[2]);
         egui::CentralPanel::default()
             .frame(egui::Frame::new().fill(bg))
             .show(ui, |ui| self.viewport(ui));
 
         crate::ui::about_window(self, &ctx);
+        crate::ui::preferences_window(self, &ctx);
         crate::ui::toast(self, &ctx);
     }
 
-    fn clear_color(&self, _visuals: &egui::Visuals) -> [f32; 4] {
-        let c = BACKGROUND_DARK;
+    fn clear_color(&self, visuals: &egui::Visuals) -> [f32; 4] {
+        let c = canvas_background(visuals.dark_mode);
         [
             c[0] as f32 / 255.0,
             c[1] as f32 / 255.0,
@@ -689,6 +721,23 @@ impl eframe::App for ViewerApp {
             1.0,
         ]
     }
+}
+
+/// Drawing-area background for the current theme.
+pub fn canvas_background(dark: bool) -> [u8; 3] {
+    if dark {
+        BACKGROUND_DARK
+    } else {
+        BACKGROUND_LIGHT
+    }
+}
+
+fn apply_theme(ctx: &egui::Context, theme: Theme) {
+    ctx.set_theme(match theme {
+        Theme::System => egui::ThemePreference::System,
+        Theme::Dark => egui::ThemePreference::Dark,
+        Theme::Light => egui::ThemePreference::Light,
+    });
 }
 
 pub fn file_name(path: &Path) -> String {

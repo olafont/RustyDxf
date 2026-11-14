@@ -8,6 +8,7 @@ mod gpu;
 mod ipc;
 mod mcp;
 mod platform;
+mod settings;
 mod ui;
 
 use anyhow::{Context, Result};
@@ -20,8 +21,9 @@ const USAGE: &str = "\
 Usage:
   rustydxf [FILE.dxf]                 Open the viewer (optionally with a file)
   rustydxf --mcp                      Run as an MCP server over stdio
-  rustydxf --mcp --http 127.0.0.1:PORT
-                                      Run as an MCP server over Streamable HTTP (localhost only)
+  rustydxf --mcp --http [127.0.0.1:PORT]
+                                      Run as an MCP server over Streamable HTTP (localhost only;
+                                      without an address, the port set in Preferences)
   rustydxf --register                 Make RustyDxf the default app for .dxf files
   rustydxf --mcp-config               Print the MCP client config for this install
   rustydxf --version | --help
@@ -43,14 +45,16 @@ fn parse_args(args: impl IntoIterator<Item = String>) -> Result<Command, String>
     let mut mcp = false;
     let mut http = None;
     let mut command = None;
-    let mut args = args.into_iter();
+    let mut args = args.into_iter().peekable();
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--mcp" => mcp = true,
             "--http" => {
+                // The address is optional: without one, the port from the
+                // preferences is used.
                 http = Some(
-                    args.next()
-                        .ok_or("--http needs an address, e.g. --http 127.0.0.1:8765")?,
+                    args.next_if(|next| !next.starts_with('-'))
+                        .unwrap_or_default(),
                 );
             }
             "--register" => command = Some(Command::Register),
@@ -224,6 +228,18 @@ mod tests {
             Ok(Command::Gui(vec![PathBuf::from("x.dxf")]))
         );
         assert!(parse(&["--http", "127.0.0.1:1"]).is_err());
+        assert_eq!(
+            parse(&["--mcp", "--http"]),
+            Ok(Command::Mcp {
+                http: Some(String::new())
+            })
+        );
+        assert_eq!(
+            parse(&["--http", "--mcp"]),
+            Ok(Command::Mcp {
+                http: Some(String::new())
+            })
+        );
         assert!(parse(&["--http"]).is_err());
         assert!(parse(&["--bogus"]).is_err());
     }

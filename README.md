@@ -47,7 +47,8 @@ Render tests are skipped on machines with no GPU adapter unless
 ```
 rustydxf [FILE.dxf]                    open the viewer
 rustydxf --mcp                         MCP server over stdio
-rustydxf --mcp --http 127.0.0.1:PORT   MCP server over Streamable HTTP (loopback only)
+rustydxf --mcp --http [127.0.0.1:PORT] MCP server over Streamable HTTP (loopback only;
+                                       without an address, the port from Preferences)
 rustydxf --register                    make RustyDxf the default app for .dxf
 rustydxf --mcp-config                  print the MCP client config for this install
 ```
@@ -58,6 +59,24 @@ rustydxf --mcp-config                  print the MCP client config for this inst
 | Pan | Middle-drag, Space + drag, left-drag, trackpad two-finger scroll |
 | Zoom to extents | `F` |
 | Open / close | Cmd/Ctrl+O, Cmd/Ctrl+W, or drop a file on the window |
+
+### Preferences
+
+**File → Preferences…** (Cmd/Ctrl+,) holds:
+
+| Setting | Effect |
+|---|---|
+| Theme | System (default), Dark or Light. On the light theme the drawing area is white and color 7 is drawn black |
+| Let MCP clients control this window | Turns `show_in_viewer` and `get_viewer_state` on or off. The file-reading tools always work |
+| Let show_in_viewer start RustyDxf | Whether the tool may launch the viewer when it is not running |
+| Default render_png background | Used when the MCP client does not pass `background` |
+| HTTP port | Port for `rustydxf --mcp --http` when no address is given (default 8765) |
+
+The window also shows the MCP client configuration with buttons to copy the
+JSON or the `claude mcp add` command. Changes are saved immediately to
+`settings.json` in the per-user config directory (macOS:
+`~/Library/Application Support/dev.art-tech.rustydxf/`), and the MCP server
+reads them on each tool call, so nothing needs restarting.
 
 Only one viewer window runs at a time: starting `rustydxf file.dxf` again hands
 the file to the running window.
@@ -147,7 +166,7 @@ are capped and carry `"truncated": true`.
 | `get_extents` | `path`, `layer?` | Bounding box (`min`, `max`, `width`, `height`) and units |
 | `measure` | `path`, then either `from` + `to` (`[x, y]`) or `layer?` / `type?` | Point-to-point distance, or total length of the matching entities |
 | `find_text` | `path`, `query`, `limit=200` | TEXT/MTEXT matches (case-insensitive) with position, height, rotation, layer |
-| `render_png` | `path`, `width=1600`, `height=1200`, `layers?`, `bbox?`, `background` (`dark`/`light`), `output_path?` | The PNG as an image, plus a summary |
+| `render_png` | `path`, `width=1600`, `height=1200`, `layers?`, `bbox?`, `background?` (`dark`/`light`, default from Preferences), `output_path?` | The PNG as an image, plus a summary |
 | `show_in_viewer` | `path`, `layers?`, `bbox?` | Opens the file in the RustyDxf window (starting it if needed) and returns its state |
 | `get_viewer_state` | — | File, visible world rectangle and layer visibility of the running window |
 
@@ -161,6 +180,7 @@ current user). The status bar shows **MCP live** while a client is connected.
 Two environment variables help with testing and headless hosts:
 `RUSTYDXF_INSTANCE=name` uses a separate IPC endpoint, and
 `RUSTYDXF_NO_LAUNCH=1` stops `show_in_viewer` from starting a window.
+`RUSTYDXF_CONFIG_DIR=dir` reads and writes `settings.json` in another directory.
 
 ### Verification
 

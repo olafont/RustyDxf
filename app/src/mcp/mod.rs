@@ -64,7 +64,12 @@ async fn serve_http(
     cache: Arc<cache::Cache>,
     bridge: Arc<bridge::Bridge>,
 ) -> Result<()> {
-    let addr = parse_http_addr(addr)?;
+    let addr = if addr.is_empty() {
+        let port = crate::settings::Settings::load().mcp.http_port;
+        SocketAddr::from(([127, 0, 0, 1], port))
+    } else {
+        parse_http_addr(addr)?
+    };
     // The default config already restricts the Host header to localhost
     // names (DNS-rebinding protection); also reject non-local browser origins.
     let config = StreamableHttpServerConfig::default().with_allowed_origins([
@@ -120,6 +125,18 @@ async fn serve_http(
             }
         }
     }
+}
+
+/// The `claude mcp add` command that registers this install with Claude Code.
+pub fn claude_code_command() -> Result<String> {
+    let exe = std::env::current_exe().context("locating the executable")?;
+    let exe = exe.canonicalize().unwrap_or(exe).display().to_string();
+    let exe = if exe.contains([' ', '"', '\'']) {
+        format!("\"{}\"", exe.replace('"', "\\\""))
+    } else {
+        exe
+    };
+    Ok(format!("claude mcp add rustydxf -- {exe} --mcp"))
 }
 
 /// JSON for an MCP client's config file (e.g. Claude Desktop's

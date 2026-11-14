@@ -32,10 +32,22 @@ struct Server {
 
 impl Server {
     fn start() -> Self {
+        Self::start_with_settings("default", "{}")
+    }
+
+    /// Start a server whose preferences file contains `settings`.
+    fn start_with_settings(name: &str, settings: &str) -> Self {
+        let config = Path::new(env!("CARGO_TARGET_TMPDIR")).join(format!("mcp-config-{name}"));
+        std::fs::create_dir_all(&config).unwrap();
+        std::fs::write(config.join("settings.json"), settings).unwrap();
         let mut child = Command::new(env!("CARGO_BIN_EXE_rustydxf"))
             .arg("--mcp")
-            .env("RUSTYDXF_INSTANCE", format!("test-{}", std::process::id()))
+            .env(
+                "RUSTYDXF_INSTANCE",
+                format!("test-{name}-{}", std::process::id()),
+            )
             .env("RUSTYDXF_NO_LAUNCH", "1")
+            .env("RUSTYDXF_CONFIG_DIR", &config)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit())
@@ -316,4 +328,48 @@ fn every_tool_over_stdio() {
     // The server is still healthy after all of that.
     let again = server.call_ok("open_dxf", json!({ "path": lines }));
     assert_eq!(again["file_name"], "lines.dxf");
+}
+
+#[test]
+fn preferences_change_mcp_behaviour() {
+    let dir = fixtures();
+    let lines = path(&dir, "lines.dxf");
+    let mut server = Server::start_with_settings(
+        "prefs",
+        r#"{"mcp":{"allow_viewer_control":false,"render_background":"light"}}"#,
+    );
+
+    // Viewer control is off: both live tools say so, and name the setting.
+    for (tool, arguments) in [
+        ("show_in_viewer", json!({ "path": lines })),
+        ("get_viewer_state", json!({})),
+    ] {
+        let message = server.call_err(tool, arguments);
+        assert!(message.contains("preferences"), "{tool}: {message}");
+    }
+
+    // Headless tools are unaffected.
+    server.call_ok("open_dxf", json!({ "path": lines }));
+
+    // render_png takes its default background from the preferences, and an
+    // explicit argument still wins.
+    for (arguments, expected) in [
+        (json!({ "path": lines, "width": 64, "height": 64 }), "light"),
+        (
+            json!({ "path": lines, "width": 64, "height": 64, "background": "dark" }),
+            "dark",
+        ),
+    ] {
+        let rendered = server.call("render_png", arguments);
+        if rendered["isError"] == json!(true) {
+            assert!(
+                std::env::var_os("RUSTYDXF_REQUIRE_GPU").is_none(),
+                "{rendered}"
+            );
+            continue;
+        }
+        let summary: Value =
+            serde_json::from_str(rendered["content"][0]["text"].as_str().unwrap()).unwrap();
+        assert_eq!(summary["background"], expected, "{summary}");
+    }
 }

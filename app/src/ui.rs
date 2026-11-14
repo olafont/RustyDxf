@@ -1,6 +1,7 @@
 //! Menu bar, layers panel, status bar and the About window.
 
-use crate::app::{CLOSE_SHORTCUT, OPEN_SHORTCUT, ViewerApp, accent};
+use crate::app::{CLOSE_SHORTCUT, OPEN_SHORTCUT, PREFS_SHORTCUT, ViewerApp, accent};
+use crate::settings::{RenderBackground, Theme};
 use egui::{Color32, RichText};
 use rustydxf_core::brand;
 use std::time::{Duration, Instant};
@@ -21,6 +22,13 @@ pub fn menu_bar(app: &mut ViewerApp, ui: &mut egui::Ui) {
                 if ui.add_enabled(app.doc.is_some(), close).clicked() {
                     ui.close();
                     app.close_document(&ctx);
+                }
+                ui.separator();
+                let prefs = egui::Button::new("Preferences…")
+                    .shortcut_text(ctx.format_shortcut(&PREFS_SHORTCUT));
+                if ui.add(prefs).clicked() {
+                    ui.close();
+                    app.show_prefs = true;
                 }
                 ui.separator();
                 if ui.button("Quit").clicked() {
@@ -113,7 +121,7 @@ pub fn layers_panel(app: &mut ViewerApp, ui: &mut egui::Ui) {
                             if ui.checkbox(&mut on, "").changed() {
                                 doc.set_visible(i, on);
                             }
-                            let rgb = layer.color.display_rgb(true);
+                            let rgb = layer.color.display_rgb(ui.visuals().dark_mode);
                             let (swatch, _) = ui
                                 .allocate_exact_size(egui::vec2(12.0, 12.0), egui::Sense::hover());
                             ui.painter().rect_filled(
@@ -249,6 +257,118 @@ pub fn about_window(app: &mut ViewerApp, ctx: &egui::Context) {
             });
         });
     app.show_about = open;
+}
+
+pub fn preferences_window(app: &mut ViewerApp, ctx: &egui::Context) {
+    if !app.show_prefs {
+        return;
+    }
+    let before = app.settings.clone();
+    let mut open = true;
+    let mut copied: Option<&str> = None;
+    egui::Window::new("Preferences")
+        .open(&mut open)
+        .collapsible(false)
+        .resizable(false)
+        .default_width(460.0)
+        .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
+        .show(ctx, |ui| {
+            ui.spacing_mut().item_spacing.y = 6.0;
+
+            ui.strong("Appearance");
+            ui.horizontal(|ui| {
+                ui.label("Theme");
+                let theme = &mut app.settings.theme;
+                ui.selectable_value(theme, Theme::System, "System");
+                ui.selectable_value(theme, Theme::Dark, "Dark");
+                ui.selectable_value(theme, Theme::Light, "Light");
+            });
+            ui.weak("White (color 7) entities are drawn black on the light theme.");
+
+            ui.add_space(6.0);
+            ui.separator();
+            ui.strong("MCP server");
+            let mcp = &mut app.settings.mcp;
+            ui.checkbox(
+                &mut mcp.allow_viewer_control,
+                "Let MCP clients control this window",
+            )
+            .on_hover_text(
+                "Allows the show_in_viewer and get_viewer_state tools. The tools that only \
+                 read files (open_dxf, render_png, …) always work.",
+            );
+            ui.add_enabled(
+                mcp.allow_viewer_control,
+                egui::Checkbox::new(
+                    &mut mcp.launch_viewer,
+                    "Let show_in_viewer start RustyDxf when it is not running",
+                ),
+            );
+            ui.horizontal(|ui| {
+                ui.label("Default render_png background");
+                let bg = &mut mcp.render_background;
+                ui.selectable_value(bg, RenderBackground::Dark, "Dark");
+                ui.selectable_value(bg, RenderBackground::Light, "Light");
+            })
+            .response
+            .on_hover_text("Used when the MCP client does not ask for a background.");
+            ui.horizontal(|ui| {
+                ui.label("HTTP port");
+                ui.add(egui::DragValue::new(&mut mcp.http_port).range(1024..=65535));
+                ui.weak(format!(
+                    "rustydxf --mcp --http serves http://127.0.0.1:{}/mcp",
+                    mcp.http_port
+                ));
+            });
+
+            ui.add_space(6.0);
+            ui.label("Client configuration (stdio)");
+            match crate::mcp::client_config_json() {
+                Ok(json) => {
+                    egui::Frame::group(ui.style()).show(ui, |ui| {
+                        ui.set_width(ui.available_width());
+                        ui.add(egui::Label::new(RichText::new(&json).monospace()).wrap());
+                    });
+                    ui.horizontal(|ui| {
+                        if ui
+                            .button("Copy JSON")
+                            .on_hover_text("For Claude Desktop's claude_desktop_config.json")
+                            .clicked()
+                        {
+                            ctx.copy_text(json);
+                            copied = Some("MCP config copied to the clipboard");
+                        }
+                        if ui.button("Copy Claude Code command").clicked()
+                            && let Ok(command) = crate::mcp::claude_code_command()
+                        {
+                            ctx.copy_text(command);
+                            copied = Some("Claude Code command copied to the clipboard");
+                        }
+                    });
+                }
+                Err(e) => {
+                    ui.colored_label(ui.visuals().error_fg_color, format!("{e:#}"));
+                }
+            }
+
+            if let Some(error) = &app.settings_error {
+                ui.add_space(4.0);
+                ui.colored_label(
+                    ui.visuals().error_fg_color,
+                    format!("Preferences could not be saved: {error}"),
+                );
+            } else {
+                ui.add_space(4.0);
+                ui.weak("Changes are saved immediately; MCP settings apply to the next tool call.");
+            }
+        });
+    app.show_prefs = open;
+    if let Some(text) = copied {
+        app.toast = Some((text.into(), Instant::now()));
+    }
+    if app.settings != before {
+        app.settings_changed(ctx);
+    }
 }
 
 pub fn toast(app: &mut ViewerApp, ctx: &egui::Context) {
