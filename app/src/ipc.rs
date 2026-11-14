@@ -94,6 +94,19 @@ pub struct Job {
 // ---------------------------------------------------------------------------
 // Endpoint
 
+/// Optional instance name from `RUSTYDXF_INSTANCE`. Viewers and MCP servers
+/// with the same name share one endpoint; the integration tests use it to
+/// stay isolated from a viewer the user has open.
+fn instance_name() -> Option<String> {
+    let name: String = std::env::var("RUSTYDXF_INSTANCE")
+        .ok()?
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+        .take(32)
+        .collect();
+    (!name.is_empty()).then_some(name)
+}
+
 /// Filesystem location of the socket (Unix only).
 #[cfg(unix)]
 pub fn socket_path() -> io::Result<std::path::PathBuf> {
@@ -110,7 +123,7 @@ pub fn socket_path() -> io::Result<std::path::PathBuf> {
     let uid = unsafe { libc_getuid() };
     if dir
         .as_ref()
-        .is_none_or(|d| d.as_os_str().len() + "/rustydxf.sock".len() > 100)
+        .is_none_or(|d| d.as_os_str().len() + "/rustydxf-.sock".len() + 32 > 100)
     {
         dir = Some(std::env::temp_dir().join(format!("rustydxf-{uid}")));
     }
@@ -131,7 +144,10 @@ pub fn socket_path() -> io::Result<std::path::PathBuf> {
     if meta.permissions().mode() & 0o077 != 0 {
         std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700))?;
     }
-    Ok(dir.join("rustydxf.sock"))
+    Ok(dir.join(match instance_name() {
+        Some(instance) => format!("rustydxf-{instance}.sock"),
+        None => "rustydxf.sock".to_string(),
+    }))
 }
 
 #[cfg(unix)]
@@ -156,7 +172,8 @@ fn endpoint_name() -> io::Result<Name<'static>> {
         .chars()
         .filter(|c| c.is_ascii_alphanumeric())
         .collect();
-    Ok(format!("dev.art-tech.rustydxf-{user}")
+    let instance = instance_name().map(|i| format!("-{i}")).unwrap_or_default();
+    Ok(format!("dev.art-tech.rustydxf-{user}{instance}")
         .to_ns_name::<GenericNamespaced>()?
         .into_owned())
 }

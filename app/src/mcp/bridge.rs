@@ -79,7 +79,14 @@ impl Bridge {
     pub fn request_launching(&self, request: &Request) -> io::Result<Response> {
         match self.request(request) {
             Ok(r) => Ok(r),
-            Err(_) => {
+            Err(e) => {
+                // Lets tests and headless hosts keep windows from opening.
+                if std::env::var_os("RUSTYDXF_NO_LAUNCH").is_some_and(|v| !v.is_empty()) {
+                    return Err(io::Error::new(
+                        e.kind(),
+                        "the viewer is not running and RUSTYDXF_NO_LAUNCH is set",
+                    ));
+                }
                 launch_gui()?;
                 let deadline = Instant::now() + LAUNCH_TIMEOUT;
                 loop {

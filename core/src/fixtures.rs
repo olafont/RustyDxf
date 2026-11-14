@@ -44,6 +44,13 @@ fn new_drawing() -> Drawing {
     let mut d = Drawing::new();
     d.header.version = AcadVersion::R2000;
     d.header.default_drawing_units = Units::Millimeters;
+    // Fixed dates (the Unix epoch) so regenerating does not churn the files.
+    d.header.creation_date = Default::default();
+    d.header.creation_date_universal = Default::default();
+    d.header.update_date = Default::default();
+    d.header.update_date_universal = Default::default();
+    d.header.fingerprint_guid = Default::default();
+    d.header.version_guid = Default::default();
     d
 }
 
@@ -277,7 +284,7 @@ fn text() -> Drawing {
             second_alignment_point: Point::new(50.0, 40.0, 0.0),
             text_height: 3.0,
             rotation: 90.0,
-            value: "ROTATED 45%%d".into(),
+            value: "ROTATED 90%%d".into(),
             horizontal_text_justification: HorizontalTextJustification::Center,
             ..Default::default()
         }),

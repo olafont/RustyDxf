@@ -211,7 +211,7 @@ fn text() {
     assert_eq!(texts.len(), 3);
     assert_eq!(texts[0].content, "RustyDxf by art-tech");
     assert!(pclose(texts[0].pos, vec2(10.0, 10.0)) && close(texts[0].height, 5.0));
-    assert_eq!(texts[1].content, "ROTATED 45°");
+    assert_eq!(texts[1].content, "ROTATED 90°");
     assert!(pclose(texts[1].pos, vec2(50.0, 40.0)));
     assert!(close(texts[1].rotation, std::f64::consts::FRAC_PI_2));
     assert_eq!(texts[2].content, "General Notes\nAll dimensions in mm");
