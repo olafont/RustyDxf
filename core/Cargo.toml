@@ -1,0 +1,19 @@
+[package]
+name = "rustydxf-core"
+description = "DXF parsing, drawing model, tessellation and headless rendering for RustyDxf"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+log.workspace = true
+serde.workspace = true
+dxf.workspace = true
+lyon.workspace = true
+wgpu.workspace = true
+bytemuck.workspace = true
+pollster.workspace = true
+png.workspace = true
