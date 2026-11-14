@@ -158,10 +158,15 @@ Two environment variables help with testing and headless hosts:
 `tools/list` and every tool, checking that `render_png` returns a valid PNG of
 the requested size.
 
-MCP Inspector has **not** been run against this build yet. To check it:
+Checked with MCP Inspector 2.15.0 in CLI mode on macOS (2026-11-14):
+`tools/list` returns all nine tools with their schemas, `get_extents` returns
+structured content, `render_png` returns a valid 320 x 200 PNG image block, and
+a relative path comes back as a tool error (`isError: true`). The Inspector's
+browser UI was not used.
 
 ```sh
-npx @modelcontextprotocol/inspector target/release/rustydxf --mcp
+npx @modelcontextprotocol/inspector --cli target/release/rustydxf --mcp --method tools/list
+npx @modelcontextprotocol/inspector target/release/rustydxf --mcp   # browser UI
 ```
 
 ## Supported entities
