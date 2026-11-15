@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! Parsed-drawing cache for the MCP tools, keyed by path and validated by
 //! modification time and size, so repeated calls on a large file are fast.
 

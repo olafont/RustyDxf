@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! RustyDxf — a small, fast DXF viewer with a built-in MCP server.
 
 // Windows note: this stays a console-subsystem binary because `--mcp` (stdio)

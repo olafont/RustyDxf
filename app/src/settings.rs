@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! User preferences, stored as JSON in the per-user config directory.
 //!
 //! The viewer edits them (File → Preferences…); the MCP server process reads

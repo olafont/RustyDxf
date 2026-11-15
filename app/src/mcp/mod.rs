@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! MCP server mode (`rustydxf --mcp`).
 //!
 //! * stdio (default): stdout carries the protocol, so nothing else may be

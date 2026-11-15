@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! Loads every generated fixture and checks the resulting model.
 
 use rustydxf_core::aci::Color;

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! Builds every RustyDxf icon file from the SVG sources.
 //!
 //! The artwork is a rusted, laser-cut "D" on a steel plate:

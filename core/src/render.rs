@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! The wgpu drawing pipeline, shared by two targets:
 //!
 //! * **On screen** — the app wraps [`Renderer::draw`] in an

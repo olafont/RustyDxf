@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! Supplementary DXF group-code scanner.
 //!
 //! The `dxf` crate is the main parser, but version 0.6.2 silently drops a few

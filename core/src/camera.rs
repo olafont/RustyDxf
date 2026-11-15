@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! 2D view transform shared by the on-screen and offscreen renderers.
 
 use crate::geom::{BBox, Vec2, vec2};

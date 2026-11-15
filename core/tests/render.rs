@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! Offscreen rendering tests. They need a GPU adapter (hardware or software);
 //! where none exists (some CI machines) they are skipped with a note, unless
 //! `RUSTYDXF_REQUIRE_GPU=1` is set.

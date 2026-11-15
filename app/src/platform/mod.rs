@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! Platform integration: file association (`--register`) and receiving
 //! "open this file" requests from the OS.
 

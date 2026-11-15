@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! Linux: desktop entry and MIME association for the current user.
 //!
 //! Files opened from a file manager arrive in argv (`Exec=… %f`).

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! Test fixture generator. Writes a small set of DXF files (built with the
 //! `dxf` crate) that the unit and integration tests load.
 //!

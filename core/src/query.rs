@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! Read-only queries over a [`Drawing`]: entity summaries, measuring and
 //! text search. The MCP tools are thin wrappers around these.
 

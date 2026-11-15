@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! End-to-end test of `rustydxf --mcp` over stdio: initialize, tools/list,
 //! then tools/call for every tool against the generated fixtures.
 //!

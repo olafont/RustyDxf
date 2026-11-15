@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! Regression checks against `tests/fixtures/real/complex.dxf`, a drawing
 //! written by ezdxf (see `tests/tools/make_complex.py`) rather than by the
 //! `dxf` crate that RustyDxf reads with.

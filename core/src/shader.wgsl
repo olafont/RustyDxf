@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 // RustyDxf drawing shader.
 //
 // Segments are instanced: each instance is one line segment that the vertex

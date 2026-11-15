@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! The MCP server's connection to a running RustyDxf window ("live" mode).
 
 use crate::ipc::{Client, Request, Response};

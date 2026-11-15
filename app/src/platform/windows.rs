@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! Windows: per-user file association and the IPC pipe's access control.
 //!
 //! Files opened from Explorer arrive in argv (`"rustydxf.exe" "%1"`), so no

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! Product identity. Everything that names the app or its publisher reads
 //! from here, so rebranding is a one-file change.
 

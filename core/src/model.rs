@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! RustyDxf's own drawing model. Everything downstream of loading (rendering,
 //! measuring, the MCP tools, the UI) works on these types only and never sees
 //! the `dxf` crate.

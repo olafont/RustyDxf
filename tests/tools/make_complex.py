@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 art-tech
+
 """Generate a deliberately awkward DXF with ezdxf (an independent writer) to
 exercise RustyDxf. Usage: python make_complex.py OUT_DIR
 

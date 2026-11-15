@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! NURBS evaluation (de Boor) and fit-point interpolation for SPLINE entities.
 
 use crate::geom::{Vec2, vec2};

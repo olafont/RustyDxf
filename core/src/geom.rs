@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! Small 2D math toolkit: points, affine transforms, bounding boxes and the
 //! curve helpers (bulge arcs, elliptical arcs) shared by loading, measuring
 //! and tessellation.

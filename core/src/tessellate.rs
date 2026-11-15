@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! Converts a [`Drawing`] into GPU-ready buffers, once, at load time.
 //!
 //! Lines are stored as instanced segments (expanded to screen-space quads in

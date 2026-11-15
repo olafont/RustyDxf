@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! Loads a DXF file into RustyDxf's own [`Drawing`] model.
 //!
 //! This is the only module (with [`crate::fixtures`]) that touches `dxf` crate

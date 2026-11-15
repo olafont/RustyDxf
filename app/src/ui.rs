@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! Menu bar, layers panel, status bar and the About window.
 
 use crate::app::{CLOSE_SHORTCUT, OPEN_SHORTCUT, PREFS_SHORTCUT, ViewerApp, accent};

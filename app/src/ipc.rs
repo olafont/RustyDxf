@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! Local IPC between RustyDxf processes.
 //!
 //! The running GUI listens on a per-user endpoint (a Unix domain socket in

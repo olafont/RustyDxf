@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! The viewer application: document state, background loading, the camera,
 //! input handling and the IPC jobs coming from other RustyDxf processes.
 

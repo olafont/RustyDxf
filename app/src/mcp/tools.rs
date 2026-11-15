@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! The MCP tools.
 //!
 //! Headless tools work on files directly through `rustydxf-core`. The two

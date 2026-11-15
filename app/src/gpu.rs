@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! Glue between egui's wgpu renderer and the shared core pipeline.
 //!
 //! The pipelines and the uploaded mesh live in egui's `callback_resources`.

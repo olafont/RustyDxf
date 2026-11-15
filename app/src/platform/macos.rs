@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! macOS: open-file Apple Events and Launch Services registration.
 
 use anyhow::{Context, Result, bail};

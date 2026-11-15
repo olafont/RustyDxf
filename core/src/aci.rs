@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 art-tech
+
 //! AutoCAD Color Index (ACI) palette and color resolution.
 
 use serde::Serialize;
