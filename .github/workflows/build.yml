@@ -1,0 +1,81 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  macos:
+    name: macOS (universal)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Add both macOS targets
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - name: Test
+        run: cargo test --workspace
+      - name: Build the universal app bundle
+        run: cargo xtask bundle --universal
+      - name: Check architectures
+        run: lipo -archs dist/RustyDxf.app/Contents/MacOS/rustydxf
+      - name: Package
+        run: |
+          cp README.md LICENSE dist/
+          cd dist
+          ditto -c -k --keepParent RustyDxf.app RustyDxf.app.zip
+          zip RustyDxf-macos-universal.zip RustyDxf.app.zip README.md LICENSE
+      - uses: actions/upload-artifact@v7
+        with:
+          name: RustyDxf-macos-universal
+          path: dist/RustyDxf-macos-universal.zip
+          if-no-files-found: error
+
+  windows:
+    name: Windows (x64)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Test
+        run: cargo test --workspace
+      - name: Build
+        run: cargo build --release -p rustydxf
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item target/release/rustydxf.exe, README.md, LICENSE, assets/icon.ico dist/
+      - uses: actions/upload-artifact@v7
+        with:
+          name: RustyDxf-windows-x64
+          path: dist/
+          if-no-files-found: error
+
+  linux:
+    name: Linux (x64)
+    # The oldest supported runner, so the binary runs on older glibc too.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Test
+        run: cargo test --workspace
+      - name: Build
+        run: cargo build --release -p rustydxf
+      - name: Package
+        run: |
+          mkdir -p dist/RustyDxf
+          cp target/release/rustydxf README.md LICENSE assets/icon.png dist/RustyDxf/
+          tar -C dist -czf dist/RustyDxf-linux-x64.tar.gz RustyDxf
+      - uses: actions/upload-artifact@v7
+        with:
+          name: RustyDxf-linux-x64
+          path: dist/RustyDxf-linux-x64.tar.gz
+          if-no-files-found: error

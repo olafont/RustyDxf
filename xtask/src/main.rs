@@ -2,7 +2,7 @@
 //!
 //! ```text
 //! cargo xtask icons              # render assets/icon.svg into every icon file
-//! cargo xtask bundle [--debug]   # build dist/RustyDxf.app (macOS)
+//! cargo xtask bundle [--debug] [--universal]   # build dist/RustyDxf.app (macOS)
 //! ```
 
 mod icon;
@@ -18,9 +18,13 @@ fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(String::as_str) {
         Some("icons") => icon::generate(&root),
-        Some("bundle") => bundle(&root, args.iter().any(|a| a == "--debug")),
+        Some("bundle") => bundle(
+            &root,
+            args.iter().any(|a| a == "--debug"),
+            args.iter().any(|a| a == "--universal"),
+        ),
         _ => {
-            eprintln!("usage: cargo xtask <icons | bundle [--debug]>");
+            eprintln!("usage: cargo xtask <icons | bundle [--debug] [--universal]>");
             std::process::exit(2);
         }
     }
@@ -33,23 +37,42 @@ fn workspace_root() -> PathBuf {
         .to_path_buf()
 }
 
-fn bundle(root: &Path, debug: bool) -> Result<()> {
+/// Both macOS architectures, for `--universal`.
+const MAC_TARGETS: [&str; 2] = ["aarch64-apple-darwin", "x86_64-apple-darwin"];
+
+fn bundle(root: &Path, debug: bool, universal: bool) -> Result<()> {
     if !cfg!(target_os = "macos") {
         bail!("`cargo xtask bundle` builds a macOS .app and must run on macOS");
     }
     let profile = if debug { "debug" } else { "release" };
-    let mut cmd = Command::new(env!("CARGO"));
-    cmd.current_dir(root).args(["build", "-p", "rustydxf"]);
-    if !debug {
-        cmd.arg("--release");
-    }
-    if !cmd.status().context("running cargo build")?.success() {
-        bail!("cargo build failed");
+    let build = |target: Option<&str>| -> Result<()> {
+        let mut cmd = Command::new(env!("CARGO"));
+        cmd.current_dir(root).args(["build", "-p", "rustydxf"]);
+        if !debug {
+            cmd.arg("--release");
+        }
+        if let Some(target) = target {
+            cmd.args(["--target", target]);
+        }
+        if !cmd.status().context("running cargo build")?.success() {
+            bail!(
+                "cargo build failed (for --universal, run `rustup target add {}`)",
+                MAC_TARGETS.join(" ")
+            );
+        }
+        Ok(())
+    };
+    if universal {
+        for target in MAC_TARGETS {
+            build(Some(target))?;
+        }
+    } else {
+        build(None)?;
     }
 
     let icns = root.join("assets/icon.icns");
     if !icns.exists() {
-        icon::generate(&root.join("assets"))?;
+        icon::generate(root)?;
     }
 
     let app = root
@@ -66,11 +89,25 @@ fn bundle(root: &Path, debug: bool) -> Result<()> {
     let target_dir = std::env::var_os("CARGO_TARGET_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|| root.join("target"));
-    fs::copy(
-        target_dir.join(profile).join("rustydxf"),
-        macos.join("rustydxf"),
-    )
-    .context("copying binary into bundle")?;
+    if universal {
+        // Merge the two single-architecture binaries into one.
+        let mut lipo = Command::new("lipo");
+        lipo.arg("-create")
+            .arg("-output")
+            .arg(macos.join("rustydxf"));
+        for target in MAC_TARGETS {
+            lipo.arg(target_dir.join(target).join(profile).join("rustydxf"));
+        }
+        if !lipo.status().context("running lipo")?.success() {
+            bail!("lipo failed");
+        }
+    } else {
+        fs::copy(
+            target_dir.join(profile).join("rustydxf"),
+            macos.join("rustydxf"),
+        )
+        .context("copying binary into bundle")?;
+    }
     fs::copy(&icns, resources.join("icon.icns"))?;
     fs::write(app.join("Contents/Info.plist"), info_plist())?;
     fs::write(app.join("Contents/PkgInfo"), "APPL????")?;

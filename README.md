@@ -42,6 +42,13 @@ Regenerate it (plus binary and R2000 variants) with
 Render tests are skipped on machines with no GPU adapter unless
 `RUSTYDXF_REQUIRE_GPU=1` is set.
 
+### Release builds on GitHub
+
+`.github/workflows/build.yml` runs on every push to `master`, on `v*` tags and
+on demand. It runs the tests and builds on native runners, and uploads three
+artifacts: a universal macOS app bundle, a Windows x64 `rustydxf.exe` and a
+Linux x64 binary. Download them from the run's page under Actions.
+
 ## Usage
 
 ```
@@ -93,6 +100,9 @@ only the protocol.
 cargo xtask bundle          # release build → dist/RustyDxf.app
 cargo xtask bundle --debug  # same, from a debug build
 ```
+
+`cargo xtask bundle --universal` builds an Intel + Apple silicon bundle (needs
+`rustup target add aarch64-apple-darwin x86_64-apple-darwin`).
 
 The bundle is assembled by `xtask` (not cargo-bundle): it writes `Info.plist`
 (`CFBundleDocumentTypes` for `.dxf` as Viewer/Owner, and a
