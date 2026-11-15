@@ -5,8 +5,23 @@ with a built-in [MCP](https://modelcontextprotocol.io) server so AI clients can
 inspect, measure and render drawings.
 
 - App ID: `dev.art-tech.rustydxf`
-- Platforms: macOS (tested), Windows and Linux (compile-checked only, see
-  [Known limitations](#known-limitations))
+- Platforms: macOS (tested), Windows and Linux (built and unit-tested on
+  GitHub, not tried by hand; see [Known limitations](#known-limitations))
+
+## Download
+
+Ready-made builds are on the
+[releases page](https://github.com/olafont/RustyDxf/releases):
+
+| File | For |
+|---|---|
+| `RustyDxf-macos-universal.zip` | macOS, Apple silicon and Intel |
+| `RustyDxf-windows-x64.zip` | Windows, 64-bit |
+| `RustyDxf-linux-x64.tar.gz` | Linux, x86-64 |
+
+The macOS app is ad-hoc signed, not notarized: on first launch macOS will block
+it until you allow it in System Settings → Privacy & Security (or right-click
+the app → Open).
 
 ## Build
 
@@ -234,9 +249,9 @@ hidden.
 
 ## Known limitations
 
-- **Windows and Linux are untested on real machines.** The code type-checks and
-  passes clippy for `x86_64-pc-windows-msvc` and `x86_64-unknown-linux-gnu`,
-  but registration, the named pipe and the windowing have only been run on macOS.
+- **Windows and Linux have not been tried by hand.** They build and pass the
+  test suite (including the MCP stdio test) on GitHub's runners, but the
+  window, registration and the live MCP tools have only been used on macOS.
 - **Text** uses one built-in font. On screen it is drawn by egui; in
   `render_png` it is drawn as filled glyph outlines. MTEXT is word-wrapped to
   its width, but SHX/TrueType styles, width factors, oblique angles and MTEXT
