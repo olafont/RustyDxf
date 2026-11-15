@@ -91,7 +91,7 @@ impl Bridge {
                     return Err(io::Error::new(
                         e.kind(),
                         "the viewer is not running, and starting it from MCP is turned off in \
-                         the RustyDxf preferences. Open RustyDxf first.",
+                         the RustyDxf settings. Open RustyDxf first.",
                     ));
                 }
                 launch_gui()?;

@@ -24,7 +24,7 @@ pub fn menu_bar(app: &mut ViewerApp, ui: &mut egui::Ui) {
                     app.close_document(&ctx);
                 }
                 ui.separator();
-                let prefs = egui::Button::new("Preferences…")
+                let prefs = egui::Button::new("Settings…")
                     .shortcut_text(ctx.format_shortcut(&PREFS_SHORTCUT));
                 if ui.add(prefs).clicked() {
                     ui.close();
@@ -50,14 +50,7 @@ pub fn menu_bar(app: &mut ViewerApp, ui: &mut egui::Ui) {
                     .clicked()
                 {
                     ui.close();
-                    match crate::mcp::client_config_json() {
-                        Ok(json) => {
-                            ctx.copy_text(json);
-                            app.toast =
-                                Some(("MCP config copied to the clipboard".into(), Instant::now()));
-                        }
-                        Err(e) => app.error = Some(format!("Cannot build the MCP config: {e}")),
-                    }
+                    app.copy_mcp_config(&ctx);
                 }
                 ui.separator();
                 if ui
@@ -266,7 +259,7 @@ pub fn preferences_window(app: &mut ViewerApp, ctx: &egui::Context) {
     let before = app.settings.clone();
     let mut open = true;
     let mut copied: Option<&str> = None;
-    egui::Window::new("Preferences")
+    egui::Window::new("Settings")
         .open(&mut open)
         .collapsible(false)
         .resizable(false)
@@ -355,7 +348,7 @@ pub fn preferences_window(app: &mut ViewerApp, ctx: &egui::Context) {
                 ui.add_space(4.0);
                 ui.colored_label(
                     ui.visuals().error_fg_color,
-                    format!("Preferences could not be saved: {error}"),
+                    format!("Settings could not be saved: {error}"),
                 );
             } else {
                 ui.add_space(4.0);

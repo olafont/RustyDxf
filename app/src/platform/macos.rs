@@ -214,3 +214,149 @@ pub fn register() -> Result<()> {
     );
     Ok(())
 }
+
+// ---------------------------------------------------------------------------
+// Native menu bar
+
+use crate::platform::MenuAction;
+use muda::accelerator::{Accelerator, CMD_OR_CTRL, Code};
+use muda::{CheckMenuItem, Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
+use std::sync::mpsc;
+
+/// The macOS menu bar. Replaces both winit's default menu and the in-window
+/// menu used on other platforms.
+pub struct NativeMenu {
+    // Kept alive for as long as the app runs.
+    _menu: Menu,
+    close: MenuItem,
+    zoom_extents: MenuItem,
+    layers: CheckMenuItem,
+    actions: mpsc::Receiver<MenuAction>,
+}
+
+impl NativeMenu {
+    /// Build the menu bar and install it. Must run on the main thread after
+    /// the application has finished launching.
+    pub fn install(ctx: &egui::Context) -> Option<NativeMenu> {
+        match Self::build(ctx) {
+            Ok(menu) => Some(menu),
+            Err(e) => {
+                log::warn!("cannot build the native menu bar: {e}");
+                None
+            }
+        }
+    }
+
+    fn build(ctx: &egui::Context) -> muda::Result<NativeMenu> {
+        // A single-window app: stop AppKit adding "Show Tab Bar" and the
+        // other tab commands to the View and Window menus.
+        // SAFETY: a class property setter taking a BOOL, on the main thread.
+        unsafe {
+            let _: () = msg_send![class!(NSWindow), setAllowsAutomaticWindowTabbing: false];
+        }
+
+        let name = brand::PRODUCT_NAME;
+        let key = |code: Code| Some(Accelerator::new(CMD_OR_CTRL, code));
+        let sep = PredefinedMenuItem::separator;
+
+        let about = MenuItem::with_id("about", format!("About {name}"), true, None);
+        let prefs = MenuItem::with_id("prefs", "Settings…", true, key(Code::Comma));
+        let app_menu = Submenu::with_items(
+            name,
+            true,
+            &[
+                &about,
+                &sep(),
+                &prefs,
+                &sep(),
+                &PredefinedMenuItem::services(None),
+                &sep(),
+                &PredefinedMenuItem::hide(Some(&format!("Hide {name}"))),
+                &PredefinedMenuItem::hide_others(None),
+                &PredefinedMenuItem::show_all(None),
+                &sep(),
+                &PredefinedMenuItem::quit(Some(&format!("Quit {name}"))),
+            ],
+        )?;
+
+        let open = MenuItem::with_id("open", "Open…", true, key(Code::KeyO));
+        let close = MenuItem::with_id("close", "Close", true, key(Code::KeyW));
+        let file_menu = Submenu::with_items("File", true, &[&open, &close])?;
+
+        let zoom_extents = MenuItem::with_id("fit", "Zoom to Extents", false, None);
+        let layers = CheckMenuItem::with_id("layers", "Layers Panel", true, true, None);
+        let view_menu = Submenu::with_items(
+            "View",
+            true,
+            &[
+                &zoom_extents,
+                &layers,
+                &sep(),
+                &PredefinedMenuItem::fullscreen(None),
+            ],
+        )?;
+
+        let window_menu = Submenu::with_items(
+            "Window",
+            true,
+            &[
+                &PredefinedMenuItem::minimize(None),
+                &PredefinedMenuItem::maximize(Some("Zoom")),
+                &sep(),
+                &PredefinedMenuItem::bring_all_to_front(None),
+            ],
+        )?;
+
+        let copy_config = MenuItem::with_id("copy-mcp", "Copy MCP Config", true, None);
+        let help_menu = Submenu::with_items("Help", true, &[&copy_config])?;
+
+        let menu =
+            Menu::with_items(&[&app_menu, &file_menu, &view_menu, &window_menu, &help_menu])?;
+        menu.init_for_nsapp();
+        window_menu.set_as_windows_menu_for_nsapp();
+        help_menu.set_as_help_menu_for_nsapp();
+
+        let (tx, actions) = mpsc::channel();
+        let ctx = ctx.clone();
+        MenuEvent::set_event_handler(Some(move |event: MenuEvent| {
+            let action = match event.id().as_ref() {
+                "about" => MenuAction::About,
+                "prefs" => MenuAction::Preferences,
+                "open" => MenuAction::Open,
+                "close" => MenuAction::Close,
+                "fit" => MenuAction::ZoomExtents,
+                "layers" => MenuAction::ToggleLayers,
+                "copy-mcp" => MenuAction::CopyMcpConfig,
+                _ => return,
+            };
+            if tx.send(action).is_ok() {
+                ctx.request_repaint();
+            }
+        }));
+
+        Ok(NativeMenu {
+            _menu: menu,
+            close,
+            zoom_extents,
+            layers,
+            actions,
+        })
+    }
+
+    /// Menu commands chosen since the last call.
+    pub fn take_actions(&self) -> Vec<MenuAction> {
+        self.actions.try_iter().collect()
+    }
+
+    /// Keep item states in step with the app.
+    pub fn sync(&self, has_document: bool, layers_shown: bool) {
+        // "Close" closes the drawing, or the window when none is open.
+        self.close.set_text(if has_document {
+            "Close Drawing"
+        } else {
+            "Close Window"
+        });
+        self.zoom_extents.set_enabled(has_document);
+        self.layers.set_checked(layers_shown);
+    }
+}

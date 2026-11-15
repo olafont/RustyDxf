@@ -48,7 +48,7 @@ Render tests are skipped on machines with no GPU adapter unless
 rustydxf [FILE.dxf]                    open the viewer
 rustydxf --mcp                         MCP server over stdio
 rustydxf --mcp --http [127.0.0.1:PORT] MCP server over Streamable HTTP (loopback only;
-                                       without an address, the port from Preferences)
+                                       without an address, the port from Settings)
 rustydxf --register                    make RustyDxf the default app for .dxf
 rustydxf --mcp-config                  print the MCP client config for this install
 ```
@@ -60,9 +60,9 @@ rustydxf --mcp-config                  print the MCP client config for this inst
 | Zoom to extents | `F` |
 | Open / close | Cmd/Ctrl+O, Cmd/Ctrl+W, or drop a file on the window |
 
-### Preferences
+### Settings
 
-**File → Preferences…** (Cmd/Ctrl+,) holds:
+**Settings…** (Cmd/Ctrl+,; in the RustyDxf menu on macOS, the File menu elsewhere) holds:
 
 | Setting | Effect |
 |---|---|
@@ -77,6 +77,9 @@ JSON or the `claude mcp add` command. Changes are saved immediately to
 `settings.json` in the per-user config directory (macOS:
 `~/Library/Application Support/dev.art-tech.rustydxf/`), and the MCP server
 reads them on each tool call, so nothing needs restarting.
+
+On macOS the commands live in the native menu bar (RustyDxf, File, View,
+Window, Help); on Windows and Linux in a menu bar inside the window.
 
 Only one viewer window runs at a time: starting `rustydxf file.dxf` again hands
 the file to the running window.
@@ -129,7 +132,7 @@ then `xdg-mime default`.
 for one. `--http 127.0.0.1:PORT` serves Streamable HTTP at `/mcp`; non-loopback
 addresses are refused and requests with a non-local `Host` get a 403.
 
-In the viewer, **Help → Copy MCP config** copies the JSON below with the right
+In the viewer, **Help → Copy MCP Config** copies the JSON below with the right
 path filled in (`rustydxf --mcp-config` prints it).
 
 **Claude Desktop** — add to `claude_desktop_config.json`
@@ -166,7 +169,7 @@ are capped and carry `"truncated": true`.
 | `get_extents` | `path`, `layer?` | Bounding box (`min`, `max`, `width`, `height`) and units |
 | `measure` | `path`, then either `from` + `to` (`[x, y]`) or `layer?` / `type?` | Point-to-point distance, or total length of the matching entities |
 | `find_text` | `path`, `query`, `limit=200` | TEXT/MTEXT matches (case-insensitive) with position, height, rotation, layer |
-| `render_png` | `path`, `width=1600`, `height=1200`, `layers?`, `bbox?`, `background?` (`dark`/`light`, default from Preferences), `output_path?` | The PNG as an image, plus a summary |
+| `render_png` | `path`, `width=1600`, `height=1200`, `layers?`, `bbox?`, `background?` (`dark`/`light`, default from Settings), `output_path?` | The PNG as an image, plus a summary |
 | `show_in_viewer` | `path`, `layers?`, `bbox?` | Opens the file in the RustyDxf window (starting it if needed) and returns its state |
 | `get_viewer_state` | — | File, visible world rectangle and layer visibility of the running window |
 

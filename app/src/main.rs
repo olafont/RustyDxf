@@ -23,7 +23,7 @@ Usage:
   rustydxf --mcp                      Run as an MCP server over stdio
   rustydxf --mcp --http [127.0.0.1:PORT]
                                       Run as an MCP server over Streamable HTTP (localhost only;
-                                      without an address, the port set in Preferences)
+                                      without an address, the port set in Settings)
   rustydxf --register                 Make RustyDxf the default app for .dxf files
   rustydxf --mcp-config               Print the MCP client config for this install
   rustydxf --version | --help
@@ -159,9 +159,14 @@ fn run_gui(files: Vec<PathBuf>) -> Result<()> {
         windows_sys::Win32::System::Console::FreeConsole();
     }
 
-    let event_loop = winit::event_loop::EventLoop::<eframe::UserEvent>::with_user_event()
-        .build()
-        .context("creating the event loop")?;
+    let mut event_loop = winit::event_loop::EventLoop::<eframe::UserEvent>::with_user_event();
+    // RustyDxf installs its own menu bar (see platform::macos::NativeMenu).
+    #[cfg(target_os = "macos")]
+    {
+        use winit::platform::macos::EventLoopBuilderExtMacOS;
+        event_loop.with_default_menu(false);
+    }
+    let event_loop = event_loop.build().context("creating the event loop")?;
     // After the event loop exists (winit has installed its app delegate) and
     // before it runs (a cold launch from Finder delivers its file early).
     platform::install_open_handler();

@@ -35,6 +35,37 @@ pub fn register_repaint(ctx: egui::Context) {
     let _ = REPAINT.set(ctx);
 }
 
+/// A command chosen from the menu bar.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MenuAction {
+    About,
+    Preferences,
+    Open,
+    Close,
+    ZoomExtents,
+    ToggleLayers,
+    CopyMcpConfig,
+}
+
+#[cfg(target_os = "macos")]
+pub use macos::NativeMenu;
+
+/// Platforms without a native menu bar use the in-window one instead.
+#[cfg(not(target_os = "macos"))]
+pub struct NativeMenu;
+
+#[cfg(not(target_os = "macos"))]
+impl NativeMenu {
+    pub fn install(_ctx: &egui::Context) -> Option<NativeMenu> {
+        None
+    }
+    pub fn take_actions(&self) -> Vec<MenuAction> {
+        Vec::new()
+    }
+    pub fn sync(&self, _has_document: bool, _layers_shown: bool) {}
+}
+
 /// Hook OS-level "open file" events. Must run after the winit event loop has
 /// been created. A no-op except on macOS, where files opened from Finder
 /// arrive as Apple Events rather than through argv.

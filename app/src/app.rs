@@ -102,6 +102,8 @@ pub struct ViewerApp {
     render_state: Option<egui_wgpu::RenderState>,
     ipc_jobs: mpsc::Receiver<ipc::Job>,
     ipc_server: Option<ipc::Server>,
+    /// The macOS menu bar; `None` where the in-window menu is used.
+    native_menu: Option<crate::platform::NativeMenu>,
 }
 
 impl ViewerApp {
@@ -148,6 +150,7 @@ impl ViewerApp {
             render_state: cc.wgpu_render_state.clone(),
             ipc_jobs,
             ipc_server,
+            native_menu: crate::platform::NativeMenu::install(&cc.egui_ctx),
         };
         if let Some(path) = initial.into_iter().next_back() {
             app.open(&cc.egui_ctx, path, PendingView::default(), None);
@@ -364,7 +367,7 @@ impl ViewerApp {
             let controls_viewer = matches!(job.request, Request::State | Request::Open { .. });
             if job.from_mcp && controls_viewer && !self.settings.mcp.allow_viewer_control {
                 let _ = job.reply.send(Response::error(
-                    "MCP control of the viewer is turned off in the RustyDxf preferences",
+                    "MCP control of the viewer is turned off in the RustyDxf settings",
                 ));
                 continue;
             }
@@ -405,6 +408,45 @@ impl ViewerApp {
         }
     }
 
+    fn handle_menu(&mut self, ctx: &egui::Context) {
+        use crate::platform::MenuAction;
+        let Some(menu) = &self.native_menu else {
+            return;
+        };
+        for action in menu.take_actions() {
+            match action {
+                MenuAction::About => self.show_about = true,
+                MenuAction::Preferences => self.show_prefs = true,
+                MenuAction::Open => self.open_dialog(ctx),
+                MenuAction::Close => self.close_document_or_window(ctx),
+                MenuAction::ZoomExtents => self.request_fit(),
+                MenuAction::ToggleLayers => self.show_layers = !self.show_layers,
+                MenuAction::CopyMcpConfig => self.copy_mcp_config(ctx),
+            }
+        }
+        if let Some(menu) = &self.native_menu {
+            menu.sync(self.doc.is_some(), self.show_layers);
+        }
+    }
+
+    pub fn copy_mcp_config(&mut self, ctx: &egui::Context) {
+        match crate::mcp::client_config_json() {
+            Ok(json) => {
+                ctx.copy_text(json);
+                self.toast = Some(("MCP config copied to the clipboard".into(), Instant::now()));
+            }
+            Err(e) => self.error = Some(format!("Cannot build the MCP config: {e}")),
+        }
+    }
+
+    fn close_document_or_window(&mut self, ctx: &egui::Context) {
+        if self.doc.is_some() {
+            self.close_document(ctx);
+        } else {
+            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+        }
+    }
+
     fn handle_shortcuts(&mut self, ctx: &egui::Context) {
         let (open, close, prefs, fit) = ctx.input_mut(|i| {
             (
@@ -421,11 +463,7 @@ impl ViewerApp {
             self.show_prefs = true;
         }
         if close {
-            if self.doc.is_some() {
-                self.close_document(ctx);
-            } else {
-                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-            }
+            self.close_document_or_window(ctx);
         }
         if fit && !ctx.egui_wants_keyboard_input() {
             self.fit_requested = true;
@@ -697,7 +735,10 @@ impl eframe::App for ViewerApp {
         self.handle_shortcuts(&ctx);
         self.handle_dropped_files(&ctx);
 
-        crate::ui::menu_bar(self, ui);
+        self.handle_menu(&ctx);
+        if self.native_menu.is_none() {
+            crate::ui::menu_bar(self, ui);
+        }
         crate::ui::status_bar(self, ui);
         crate::ui::layers_panel(self, ui);
 

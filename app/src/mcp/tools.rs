@@ -22,7 +22,7 @@ use serde_json::{Value, json};
 use std::sync::Arc;
 
 const VIEWER_CONTROL_OFF: &str = "MCP control of the viewer is turned off in the RustyDxf \
-     preferences (File → Preferences… → MCP). The headless tools still work.";
+     settings (Settings… → MCP server). The headless tools still work.";
 const DEFAULT_ENTITY_LIMIT: usize = 500;
 const MAX_ENTITY_LIMIT: usize = 2000;
 const MAX_LAYERS_LISTED: usize = 2000;
@@ -142,7 +142,7 @@ pub struct RenderParams {
     #[serde(default)]
     pub bbox: Option<[f64; 4]>,
     /// Background color: "dark" or "light". ACI 7 is drawn white on dark and
-    /// black on light. Omit to use the default from the RustyDxf preferences
+    /// black on light. Omit to use the default from the RustyDxf settings
     /// (dark unless the user changed it).
     #[serde(default)]
     pub background: Option<Background>,

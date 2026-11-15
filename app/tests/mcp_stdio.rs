@@ -345,7 +345,7 @@ fn preferences_change_mcp_behaviour() {
         ("get_viewer_state", json!({})),
     ] {
         let message = server.call_err(tool, arguments);
-        assert!(message.contains("preferences"), "{tool}: {message}");
+        assert!(message.contains("settings"), "{tool}: {message}");
     }
 
     // Headless tools are unaffected.
