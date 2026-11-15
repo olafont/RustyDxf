@@ -209,7 +209,7 @@ fn text() {
         })
         .collect();
     assert_eq!(texts.len(), 3);
-    assert_eq!(texts[0].content, "RustyDxf by art-tech");
+    assert_eq!(texts[0].content, "RustyDxf sample text");
     assert!(pclose(texts[0].pos, vec2(10.0, 10.0)) && close(texts[0].height, 5.0));
     assert_eq!(texts[1].content, "ROTATED 90°");
     assert!(pclose(texts[1].pos, vec2(50.0, 40.0)));

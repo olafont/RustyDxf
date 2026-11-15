@@ -1,4 +1,4 @@
-//! RustyDxf — a small, fast DXF viewer by art-tech, with a built-in MCP server.
+//! RustyDxf — a small, fast DXF viewer with a built-in MCP server.
 
 // Windows note: this stays a console-subsystem binary because `--mcp` (stdio)
 // and `--register` need standard streams; GUI mode detaches from the console.
@@ -99,12 +99,7 @@ fn main() {
         Command::Register => platform::register(),
         Command::McpConfig => mcp::client_config_json().map(|json| println!("{json}")),
         Command::Version => {
-            println!(
-                "{} {} — by {}",
-                brand::PRODUCT_NAME,
-                env!("CARGO_PKG_VERSION"),
-                brand::VENDOR
-            );
+            println!("{} {}", brand::PRODUCT_NAME, env!("CARGO_PKG_VERSION"));
             Ok(())
         }
         Command::Help => {

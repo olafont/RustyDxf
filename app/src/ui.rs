@@ -237,7 +237,7 @@ pub fn about_window(app: &mut ViewerApp, ctx: &egui::Context) {
             ui.vertical_centered(|ui| {
                 ui.add_space(8.0);
                 ui.label(
-                    RichText::new(format!("{} — by {}", brand::PRODUCT_NAME, brand::VENDOR))
+                    RichText::new(brand::PRODUCT_NAME)
                         .size(20.0)
                         .color(accent()),
                 );

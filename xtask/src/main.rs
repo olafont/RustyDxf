@@ -1,4 +1,4 @@
-//! Build helpers for RustyDxf (by art-tech).
+//! Build helpers for RustyDxf.
 //!
 //! ```text
 //! cargo xtask icons              # render assets/icon.svg into every icon file

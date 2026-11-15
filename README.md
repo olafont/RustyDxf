@@ -1,4 +1,4 @@
-# RustyDxf — by art-tech
+# RustyDxf
 
 A small, fast DXF **viewer** (no editing) written in Rust with egui and wgpu,
 with a built-in [MCP](https://modelcontextprotocol.io) server so AI clients can
@@ -252,7 +252,7 @@ hidden.
 
 ## Icon
 
-The icon, by art-tech, is a rusted, laser-cut **D** with two bolt holes on a
+The icon is a rusted, laser-cut **D** with two bolt holes on a
 brushed-steel plate, over blue layout lines and with CAD selection grips. It is
 a sibling of the RustyText icon (a rusted T on the same plate).
 

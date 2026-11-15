@@ -703,11 +703,8 @@ impl ServerHandler for RustyDxfServer {
     fn get_info(&self) -> ServerConfig {
         ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
             .with_server_info(
-                Implementation::new("rustydxf", env!("CARGO_PKG_VERSION")).with_title(format!(
-                    "{} by {}",
-                    brand::PRODUCT_NAME,
-                    brand::VENDOR
-                )),
+                Implementation::new("rustydxf", env!("CARGO_PKG_VERSION"))
+                    .with_title(brand::PRODUCT_NAME),
             )
             .with_instructions(
                 "RustyDxf reads DXF drawings (view only). Paths must be absolute; '~' is expanded. \

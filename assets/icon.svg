@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <!-- RustyDxf icon by art-tech: a rusted, laser-cut D on a light gray steel plate, with blue
+  <!-- RustyDxf icon: a rusted, laser-cut D on a light gray steel plate, with blue
        layout lines and CAD selection grips. A sibling of the RustyText icon (rusted T).
        Rendered to PNG by scripts/render-icon.sh, then packed by `cargo xtask icons`. -->
   <defs>

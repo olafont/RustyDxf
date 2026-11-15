@@ -1,6 +1,6 @@
 //! Builds every RustyDxf icon file from the SVG sources.
 //!
-//! The artwork (by art-tech) is a rusted, laser-cut "D" on a steel plate:
+//! The artwork is a rusted, laser-cut "D" on a steel plate:
 //!
 //! * `assets/icon.svg`: the app icon;
 //! * `assets/src/icon-small.svg`: a simplified drawing for 16 to 48 px;
@@ -207,7 +207,7 @@ fn ico(pngs: &[(usize, Vec<u8>)]) -> Vec<u8> {
 const MANIFEST: &str = r##"{
   "name": "RustyDxf",
   "short_name": "RustyDxf",
-  "description": "A small, fast DXF viewer by art-tech",
+  "description": "A small, fast DXF viewer",
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },

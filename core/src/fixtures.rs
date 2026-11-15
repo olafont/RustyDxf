@@ -273,7 +273,7 @@ fn text() -> Drawing {
         EntityType::Text(Text {
             location: Point::new(10.0, 10.0, 0.0),
             text_height: 5.0,
-            value: "RustyDxf by art-tech".into(),
+            value: "RustyDxf sample text".into(),
             ..Default::default()
         }),
         "NOTES",

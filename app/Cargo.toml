@@ -1,6 +1,6 @@
 [package]
 name = "rustydxf"
-description = "RustyDxf — a small, fast DXF viewer by art-tech"
+description = "RustyDxf — a small, fast DXF viewer"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
