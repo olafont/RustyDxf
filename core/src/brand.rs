@@ -8,7 +8,7 @@ pub const APP_ID: &str = "dev.art-tech.rustydxf";
 /// Windows ProgID for the `.dxf` association.
 pub const WINDOWS_PROG_ID: &str = "ArtTech.RustyDxf.Drawing";
 pub const DESCRIPTION: &str = "A small, fast DXF viewer with a built-in MCP server.";
-pub const COPYRIGHT: &str = "Copyright © 2026 art-tech. MIT License.";
+pub const COPYRIGHT: &str = "Copyright © 2026 art-tech. GPL-3.0-or-later.";
 
 /// The accent color (sRGB). Used by the UI highlights and the placeholder
 /// icon; swap this for the art-tech brand color.

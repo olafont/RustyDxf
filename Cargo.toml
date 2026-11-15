@@ -6,7 +6,7 @@ members = ["core", "app", "xtask"]
 version = "0.1.0"
 edition = "2024"
 authors = ["art-tech"]
-license = "MIT"
+license = "GPL-3.0-or-later"
 rust-version = "1.95"
 
 [workspace.dependencies]

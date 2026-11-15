@@ -279,3 +279,9 @@ For a web page, copy `assets/web/` to the site root and add:
 ```
 
 The UI accent color is the single constant `ACCENT` in `core/src/brand.rs`.
+
+## License
+
+RustyDxf is free software, licensed under the GNU General Public License,
+version 3 or (at your option) any later version. See [LICENSE](LICENSE).
+It comes with no warranty.
