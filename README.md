@@ -44,10 +44,12 @@ Render tests are skipped on machines with no GPU adapter unless
 
 ### Release builds on GitHub
 
-`.github/workflows/build.yml` runs on every push to `master`, on `v*` tags and
-on demand. It runs the tests and builds on native runners, and uploads three
-artifacts: a universal macOS app bundle, a Windows x64 `rustydxf.exe` and a
-Linux x64 binary. Download them from the run's page under Actions.
+`.github/workflows/build.yml` is started by hand (Actions tab, or
+`gh workflow run build.yml`). It runs the tests and builds on native runners,
+and uploads three artifacts: a universal macOS app bundle, a Windows x64
+`rustydxf.exe` and a Linux x64 binary. Given a tag
+(`gh workflow run build.yml -f tag=v0.1.0`) it also publishes them as a GitHub
+release.
 
 ## Usage
 

@@ -1,11 +1,15 @@
 name: Build
 
+# Manual only: run it from the Actions tab or with
+#   gh workflow run build.yml                  (build and upload artifacts)
+#   gh workflow run build.yml -f tag=v0.1.0    (also publish a GitHub release)
 on:
-  push:
-    branches: [master]
-    tags: ["v*"]
-  pull_request:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (for example v0.1.0). Leave empty to only build."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -52,11 +56,13 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
-          Copy-Item target/release/rustydxf.exe, README.md, LICENSE, assets/icon.ico dist/
+          New-Item -ItemType Directory -Force stage/RustyDxf | Out-Null
+          Copy-Item target/release/rustydxf.exe, README.md, LICENSE, assets/icon.ico stage/RustyDxf/
+          Compress-Archive -Path stage/RustyDxf -DestinationPath dist/RustyDxf-windows-x64.zip
       - uses: actions/upload-artifact@v7
         with:
           name: RustyDxf-windows-x64
-          path: dist/
+          path: dist/RustyDxf-windows-x64.zip
           if-no-files-found: error
 
   linux:
@@ -79,3 +85,27 @@ jobs:
           name: RustyDxf-linux-x64
           path: dist/RustyDxf-linux-x64.tar.gz
           if-no-files-found: error
+
+  release:
+    name: Publish release
+    if: ${{ inputs.tag != '' }}
+    needs: [macos, windows, linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          ls -l artifacts
+          gh release create "$TAG" artifacts/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "RustyDxf ${TAG#v}" \
+            --generate-notes
