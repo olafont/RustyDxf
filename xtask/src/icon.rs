@@ -1,91 +1,107 @@
-//! Generates the placeholder RustyDxf icon (by art-tech) procedurally:
-//! a dark rounded tile with a "D"-shaped drafting profile in the accent
-//! color and three white grip squares. Writes PNG, ICNS and ICO.
+//! Builds every RustyDxf icon file from the SVG sources.
+//!
+//! The artwork (by art-tech) is a rusted, laser-cut "D" on a steel plate:
+//!
+//! * `assets/icon.svg`: the app icon;
+//! * `assets/src/icon-small.svg`: a simplified drawing for 16 to 48 px;
+//! * `assets/src/icon-maskable.svg`: full-bleed, for maskable and touch icons.
+//!
+//! The SVGs use filters for the rust and brushed steel, so they are rendered
+//! with headless Chrome (set `CHROME` to point at another Chromium binary),
+//! then scaled and packed here into PNG, ICNS, ICO and the web icon set.
 
-use anyhow::{Context, Result};
-use rustydxf_core::brand::ACCENT;
+use anyhow::{Context, Result, bail};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
 const MASTER: usize = 1024;
 
 type Rgba = [f32; 4];
 
-fn seg_dist(p: (f32, f32), a: (f32, f32), b: (f32, f32)) -> f32 {
-    let (px, py) = (p.0 - a.0, p.1 - a.1);
-    let (dx, dy) = (b.0 - a.0, b.1 - a.1);
-    let t = ((px * dx + py * dy) / (dx * dx + dy * dy)).clamp(0.0, 1.0);
-    ((px - dx * t).powi(2) + (py - dy * t).powi(2)).sqrt()
-}
+const DEFAULT_CHROME: &[&str] = &[
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    "google-chrome",
+    "chromium",
+    "chrome",
+];
 
-fn rounded_rect_dist(p: (f32, f32), center: (f32, f32), half: f32, radius: f32) -> f32 {
-    let qx = (p.0 - center.0).abs() - (half - radius);
-    let qy = (p.1 - center.1).abs() - (half - radius);
-    let outside = (qx.max(0.0).powi(2) + qy.max(0.0).powi(2)).sqrt();
-    outside + qx.max(qy).min(0.0) - radius
-}
-
-/// Coverage for a signed distance (negative = inside), one pixel of AA.
-fn cover(d: f32) -> f32 {
-    (0.5 - d).clamp(0.0, 1.0)
-}
-
-fn over(dst: &mut Rgba, src: [f32; 3], alpha: f32) {
-    for c in 0..3 {
-        dst[c] = src[c] * alpha + dst[c] * (1.0 - alpha);
+/// Render an SVG to a 1024 px transparent PNG with headless Chrome and load it.
+fn render_svg(svg: &Path, scratch: &Path) -> Result<Vec<Rgba>> {
+    let name = svg.file_stem().and_then(|s| s.to_str()).unwrap_or("icon");
+    let out = scratch.join(format!("{name}.png"));
+    let _ = fs::remove_file(&out);
+    let svg = svg
+        .canonicalize()
+        .with_context(|| format!("{} not found", svg.display()))?;
+    let candidates: Vec<String> = match std::env::var("CHROME") {
+        Ok(chrome) if !chrome.is_empty() => vec![chrome],
+        _ => DEFAULT_CHROME.iter().map(|c| c.to_string()).collect(),
+    };
+    let rendered = candidates.iter().any(|chrome| {
+        Command::new(chrome)
+            .args([
+                "--headless",
+                "--disable-gpu",
+                "--hide-scrollbars",
+                "--force-device-scale-factor=1",
+                "--default-background-color=00000000",
+            ])
+            .arg(format!("--window-size={MASTER},{MASTER}"))
+            .arg(format!("--screenshot={}", out.display()))
+            .arg(format!("file://{}", svg.display()))
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .is_ok_and(|s| s.success())
+            && out.exists()
+    });
+    if !rendered {
+        bail!(
+            "could not render {} with headless Chrome; install Chrome or set CHROME=/path/to/chromium",
+            svg.display()
+        );
     }
-    dst[3] = alpha + dst[3] * (1.0 - alpha);
+    load_png(&out)
 }
 
-fn master() -> Vec<Rgba> {
-    let accent = [
-        ACCENT[0] as f32 / 255.0,
-        ACCENT[1] as f32 / 255.0,
-        ACCENT[2] as f32 / 255.0,
-    ];
-    let white = [0.96, 0.96, 0.97];
-    let grip_edge = [0.08, 0.09, 0.11];
-
-    // Profile geometry on the 1024 canvas.
-    let (left, top, bottom, arc_cx) = (372.0, 290.0, 734.0, 490.0);
-    let cy = (top + bottom) / 2.0;
-    let r = (bottom - top) / 2.0;
-    let stroke = 27.0; // half width
-    let grips = [(left, top), (left, bottom), (arc_cx + r, cy)];
-
-    let mut img = vec![[0.0f32; 4]; MASTER * MASTER];
-    for y in 0..MASTER {
-        for x in 0..MASTER {
-            let p = (x as f32 + 0.5, y as f32 + 0.5);
-            let px = &mut img[y * MASTER + x];
-
-            // Tile with a soft vertical gradient.
-            let tile = rounded_rect_dist(p, (512.0, 512.0), 412.0, 184.0);
-            let t = y as f32 / MASTER as f32;
-            let bg = [0.135 - 0.04 * t, 0.145 - 0.04 * t, 0.175 - 0.045 * t];
-            over(px, bg, cover(tile));
-            // Thin inner highlight along the tile edge.
-            over(px, [1.0, 1.0, 1.0], 0.07 * cover((tile + 5.0).abs() - 2.5));
-
-            // The "D": three straight edges and a right-hand semicircle.
-            let mut d = seg_dist(p, (left, top), (left, bottom))
-                .min(seg_dist(p, (left, top), (arc_cx, top)))
-                .min(seg_dist(p, (left, bottom), (arc_cx, bottom)));
-            if p.0 >= arc_cx {
-                let dc = ((p.0 - arc_cx).powi(2) + (p.1 - cy).powi(2)).sqrt();
-                d = d.min((dc - r).abs());
-            }
-            over(px, accent, cover(d - stroke) * cover(tile + 30.0));
-
-            // Grips.
-            for g in grips {
-                let gd = (p.0 - g.0).abs().max((p.1 - g.1).abs());
-                over(px, grip_edge, cover(gd - 50.0));
-                over(px, white, cover(gd - 38.0));
-            }
-        }
+fn load_png(path: &Path) -> Result<Vec<Rgba>> {
+    let file = fs::File::open(path).with_context(|| format!("opening {}", path.display()))?;
+    let mut decoder = png::Decoder::new(std::io::BufReader::new(file));
+    decoder.set_transformations(png::Transformations::normalize_to_color8());
+    let mut reader = decoder.read_info()?;
+    let mut buf = vec![0; reader.output_buffer_size().context("PNG too large")?];
+    let info = reader.next_frame(&mut buf)?;
+    if info.width as usize != MASTER || info.height as usize != MASTER {
+        bail!(
+            "{} is {}x{}, expected {MASTER}x{MASTER}",
+            path.display(),
+            info.width,
+            info.height
+        );
     }
-    img
+    let channels = match info.color_type {
+        png::ColorType::Rgba => 4,
+        png::ColorType::Rgb => 3,
+        other => bail!("{}: unexpected PNG color type {other:?}", path.display()),
+    };
+    Ok(buf[..MASTER * MASTER * channels]
+        .chunks_exact(channels)
+        .map(|p| {
+            let a = if channels == 4 {
+                p[3] as f32 / 255.0
+            } else {
+                1.0
+            };
+            [
+                p[0] as f32 / 255.0,
+                p[1] as f32 / 255.0,
+                p[2] as f32 / 255.0,
+                a,
+            ]
+        })
+        .collect())
 }
 
 /// Area-average downsample of the master image to `size` x `size` RGBA8.
@@ -188,28 +204,70 @@ fn ico(pngs: &[(usize, Vec<u8>)]) -> Vec<u8> {
     out
 }
 
-pub fn generate(assets: &Path) -> Result<()> {
-    fs::create_dir_all(assets)?;
-    let master = master();
+const MANIFEST: &str = r##"{
+  "name": "RustyDxf",
+  "short_name": "RustyDxf",
+  "description": "A small, fast DXF viewer by art-tech",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "theme_color": "#b4531f",
+  "background_color": "#dfe2e6",
+  "display": "standalone"
+}
+"##;
+
+pub fn generate(root: &Path) -> Result<()> {
+    let assets = root.join("assets");
+    let web = assets.join("web");
+    let scratch: PathBuf = root.join("target").join("icon-render");
+    fs::create_dir_all(&web)?;
+    fs::create_dir_all(&scratch)?;
+
+    let full = render_svg(&assets.join("icon.svg"), &scratch)?;
+    let small = render_svg(&assets.join("src/icon-small.svg"), &scratch)?;
+    let maskable = render_svg(&assets.join("src/icon-maskable.svg"), &scratch)?;
+
+    let png = |master: &[Rgba], size: usize| encode_png(&resize(master, size), size);
+    // Small sizes use the simplified drawing: the rust texture and the
+    // layout lines turn to mud below about 64 px.
+    let app = |size: usize| png(if size <= 48 { &small } else { &full }, size);
+
     let mut pngs = Vec::new();
     for size in [16, 32, 48, 64, 128, 256, 512, 1024] {
-        let rgba = resize(&master, size);
-        pngs.push((size, encode_png(&rgba, size)?));
+        pngs.push((size, app(size)?));
     }
-    let get = |s: usize| {
-        &pngs
-            .iter()
-            .find(|(z, _)| *z == s)
-            .expect("size generated")
-            .1
+    let write = |path: PathBuf, data: &[u8]| {
+        fs::write(&path, data).with_context(|| format!("writing {}", path.display()))
     };
-    let write = |name: &str, data: &[u8]| {
-        fs::write(assets.join(name), data).with_context(|| format!("writing {name}"))
-    };
-    write("icon.png", get(1024))?;
-    write("icon-256.png", get(256))?;
-    write("icon.icns", &icns(&pngs))?;
-    write("icon.ico", &ico(&pngs))?;
-    println!("icons written to {}", assets.display());
+
+    // Desktop apps.
+    write(assets.join("icon.png"), &app(1024)?)?;
+    write(assets.join("icon-256.png"), &app(256)?)?;
+    write(assets.join("icon.icns"), &icns(&pngs))?;
+    write(assets.join("icon.ico"), &ico(&pngs))?;
+
+    // Web.
+    fs::copy(assets.join("src/icon-small.svg"), web.join("favicon.svg"))
+        .context("copying favicon.svg")?;
+    let favicon: Vec<(usize, Vec<u8>)> = pngs.iter().filter(|(s, _)| *s <= 48).cloned().collect();
+    write(web.join("favicon.ico"), &ico(&favicon))?;
+    write(web.join("favicon-32.png"), &app(32)?)?;
+    write(web.join("icon-192.png"), &app(192)?)?;
+    write(web.join("icon-512.png"), &app(512)?)?;
+    write(web.join("icon-maskable-192.png"), &png(&maskable, 192)?)?;
+    write(web.join("icon-maskable-512.png"), &png(&maskable, 512)?)?;
+    // iOS rounds the corners itself and shows transparency as black.
+    write(web.join("apple-touch-icon.png"), &png(&maskable, 180)?)?;
+    write(web.join("site.webmanifest"), MANIFEST.as_bytes())?;
+
+    println!(
+        "icons written to {} and {}",
+        assets.display(),
+        web.display()
+    );
     Ok(())
 }

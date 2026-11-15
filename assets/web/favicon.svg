@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- RustyDxf icon, simplified for small sizes (favicon, 16-48 px): a bold rust D on the
+       steel plate with one selection grip. No filters, so it renders the same everywhere. -->
+  <defs>
+    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f5f7"/>
+      <stop offset="1" stop-color="#bfc4cb"/>
+    </linearGradient>
+    <linearGradient id="rust" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d9652b"/>
+      <stop offset="0.55" stop-color="#b4531f"/>
+      <stop offset="1" stop-color="#7a3210"/>
+    </linearGradient>
+  </defs>
+  <rect x="32" y="32" width="960" height="960" rx="220" fill="url(#plate)" stroke="#8d939c" stroke-width="16"/>
+  <path fill="url(#rust)" fill-rule="evenodd" stroke="#5a2409" stroke-width="14" stroke-linejoin="round"
+        d="M250 180 h200 a332 332 0 0 1 0 664 h-200 a28 28 0 0 1 -28 -28 v-608 a28 28 0 0 1 28 -28 z M412 372 a20 20 0 0 1 20 -20 h18 a160 160 0 0 1 0 320 h-18 a20 20 0 0 1 -20 -20 z"/>
+  <rect x="712" y="442" width="140" height="140" rx="18" fill="#1668c4" stroke="#ffffff" stroke-width="26"/>
+</svg>

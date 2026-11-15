@@ -1,7 +1,7 @@
 //! Build helpers for RustyDxf (by art-tech).
 //!
 //! ```text
-//! cargo xtask icons              # regenerate assets/icon.{png,icns,ico}
+//! cargo xtask icons              # render assets/icon.svg into every icon file
 //! cargo xtask bundle [--debug]   # build dist/RustyDxf.app (macOS)
 //! ```
 
@@ -17,7 +17,7 @@ fn main() -> Result<()> {
     let root = workspace_root();
     let args: Vec<String> = std::env::args().skip(1).collect();
     match args.first().map(String::as_str) {
-        Some("icons") => icon::generate(&root.join("assets")),
+        Some("icons") => icon::generate(&root),
         Some("bundle") => bundle(&root, args.iter().any(|a| a == "--debug")),
         _ => {
             eprintln!("usage: cargo xtask <icons | bundle [--debug]>");

@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- RustyDxf icon, full-bleed variant for maskable (Android / PWA) and Apple touch icons:
+       no rounded plate or shadow, artwork kept inside the central safe zone. -->
+  <defs>
+
+    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f4f5f7"/>
+      <stop offset="1" stop-color="#c3c7cd"/>
+    </linearGradient>
+    <linearGradient id="plateEdge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.18"/>
+    </linearGradient>
+    <linearGradient id="drip" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b9541f" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#c8612a" stop-opacity="0"/>
+    </linearGradient>
+
+    <filter id="plateShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000" flood-opacity="0.32"/>
+    </filter>
+
+    <!-- Brushed steel: noise stretched sideways, laid faintly over the plate. -->
+    <filter id="brushed" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.004 0.5" numOctaves="3" seed="3"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.25  0 0 0 0 0.27  0 0 0 0 0.3  0.14 0 0 0 -0.02"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+
+    <filter id="soft" x="-30%" y="-10%" width="160%" height="130%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+
+    <!-- Rust: blotchy noise mapped onto a brown-to-orange ramp, then grain,
+         pits, and a bevel so the letter reads as a thick piece of iron. -->
+    <filter id="rust" x="-10%" y="-10%" width="120%" height="130%" color-interpolation-filters="sRGB">
+      <!-- Large blotches -->
+      <feTurbulence type="fractalNoise" baseFrequency="0.011" numOctaves="5" seed="11" result="blotchNoise"/>
+      <feColorMatrix in="blotchNoise" type="matrix"
+                     values="1 0 0 0 0  1 0 0 0 0  1 0 0 0 0  0 0 0 0 1" result="blotchGray"/>
+      <feComponentTransfer in="blotchGray" result="blotchStretched">
+        <feFuncR type="linear" slope="2.6" intercept="-0.8"/>
+        <feFuncG type="linear" slope="2.6" intercept="-0.8"/>
+        <feFuncB type="linear" slope="2.6" intercept="-0.8"/>
+      </feComponentTransfer>
+      <feComponentTransfer in="blotchStretched" result="rustColor">
+        <feFuncR type="table" tableValues="0.25 0.47 0.68 0.82 0.90"/>
+        <feFuncG type="table" tableValues="0.10 0.17 0.27 0.38 0.52"/>
+        <feFuncB type="table" tableValues="0.05 0.06 0.08 0.11 0.18"/>
+      </feComponentTransfer>
+
+      <!-- Fine grain, multiplied in -->
+      <feTurbulence type="fractalNoise" baseFrequency="0.42" numOctaves="2" seed="5" result="grainNoise"/>
+      <feColorMatrix in="grainNoise" type="matrix"
+                     values="0.9 0 0 0 0.45  0.9 0 0 0 0.45  0.9 0 0 0 0.45  0 0 0 0 1" result="grain"/>
+      <feBlend in="rustColor" in2="grain" mode="multiply" result="grainy"/>
+
+      <!-- Pits: thresholded mid-frequency noise as dark flecks -->
+      <feTurbulence type="fractalNoise" baseFrequency="0.07" numOctaves="3" seed="23" result="pitNoise"/>
+      <feColorMatrix in="pitNoise" type="matrix"
+                     values="0 0 0 0 0.16  0 0 0 0 0.06  0 0 0 0 0.03  10 0 0 0 -6.7" result="pits"/>
+      <feComposite in="pits" in2="grainy" operator="over" result="pitted"/>
+
+      <!-- Keep it inside the letter -->
+      <feComposite in="pitted" in2="SourceAlpha" operator="in" result="letter"/>
+
+      <!-- Bevel: light along the top edges, dark along the bottom ones -->
+      <feComponentTransfer in="SourceAlpha" result="outside">
+        <feFuncA type="table" tableValues="1 0"/>
+      </feComponentTransfer>
+      <feOffset in="outside" dy="9" result="outsideDown"/>
+      <feGaussianBlur in="outsideDown" stdDeviation="5" result="outsideDownBlur"/>
+      <feFlood flood-color="#ffd9a8" flood-opacity="0.55"/>
+      <feComposite in2="outsideDownBlur" operator="in"/>
+      <feComposite in2="SourceAlpha" operator="in" result="highlight"/>
+
+      <feOffset in="outside" dy="-11" result="outsideUp"/>
+      <feGaussianBlur in="outsideUp" stdDeviation="7" result="outsideUpBlur"/>
+      <feFlood flood-color="#2a0e04" flood-opacity="0.75"/>
+      <feComposite in2="outsideUpBlur" operator="in"/>
+      <feComposite in2="SourceAlpha" operator="in" result="shade"/>
+
+      <!-- Shadow the letter casts on the plate -->
+      <feGaussianBlur in="SourceAlpha" stdDeviation="10" result="castBlur"/>
+      <feOffset in="castBlur" dy="16" result="castOffset"/>
+      <feComponentTransfer in="castOffset" result="cast">
+        <feFuncA type="linear" slope="0.55"/>
+      </feComponentTransfer>
+
+      <feMerge>
+        <feMergeNode in="cast"/>
+        <feMergeNode in="letter"/>
+        <feMergeNode in="shade"/>
+        <feMergeNode in="highlight"/>
+      </feMerge>
+    </filter>
+  
+    <filter id="gripShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#plate)"/>
+  <rect width="1024" height="1024" fill="#fff" filter="url(#brushed)"/>
+  <g transform="translate(512 512) scale(0.90) translate(-516 -512)">
+    <!-- Layout lines scribed on the plate: centre lines and the construction circle of the arc -->
+    <g fill="none" stroke="#1668c4" stroke-opacity="0.62" stroke-width="5" stroke-linecap="round">
+      <path d="M150 512 H874" stroke-dasharray="46 14 6 14"/>
+      <path d="M470 150 V874" stroke-dasharray="46 14 6 14"/>
+      <circle cx="470" cy="512" r="262" stroke-dasharray="20 16"/>
+      <!-- Height dimension -->
+      <path d="M146 250 H268 M146 774 H268" stroke-width="4"/>
+      <path d="M174 262 V762" stroke-width="4"/>
+    </g>
+    <g fill="#1668c4" fill-opacity="0.8200000000000001">
+      <path d="M174 250 l-13 34 h26 z M174 774 l-13 -34 h26 z"/>
+    </g>
+    <!-- Rust stains running down from the part -->
+    <g filter="url(#soft)">
+      <rect x="318" y="770" width="20" height="120" rx="10" fill="url(#drip)"/>
+      <rect x="392" y="770" width="30" height="170" rx="15" fill="url(#drip)"/>
+      <rect x="520" y="762" width="18" height="110" rx="9" fill="url(#drip)"/>
+      <rect x="610" y="712" width="24" height="190" rx="12" fill="url(#drip)"/>
+      <rect x="452" y="376" width="16" height="120" rx="8" fill="url(#drip)"/>
+      <rect x="520" y="382" width="24" height="170" rx="12" fill="url(#drip)"/>
+      <rect x="357" y="332" width="14" height="70" rx="7" fill="url(#drip)"/>
+    </g>
+    <!-- The D: a plate part with two bolt holes -->
+    <path filter="url(#rust)" fill="#b4531f" fill-rule="evenodd"
+          d="M316 250 h154 a262 262 0 0 1 0 524 h-154 a16 16 0 0 1 -16 -16 v-492 a16 16 0 0 1 16 -16 z M430 394 a14 14 0 0 1 14 -14 h26 a132 132 0 0 1 0 264 h-26 a14 14 0 0 1 -14 -14 z M365 293 a22 22 0 1 0 0.01 0 z M365 687 a22 22 0 1 0 0.01 0 z"/>
+    <!-- Selection grips, as on a selected polyline in a CAD program -->
+    <g fill="#1668c4" stroke="#ffffff" stroke-width="7" filter="url(#gripShadow)">
+      <rect x="279" y="229" width="42" height="42" rx="5"/>
+      <rect x="449" y="229" width="42" height="42" rx="5"/>
+      <rect x="711" y="491" width="42" height="42" rx="5"/>
+      <rect x="449" y="753" width="42" height="42" rx="5"/>
+      <rect x="279" y="753" width="42" height="42" rx="5"/>
+    </g>
+  </g>
+</svg>
